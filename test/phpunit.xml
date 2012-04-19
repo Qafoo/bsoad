@@ -1,0 +1,21 @@
+<phpunit backupGlobals="false"
+         backupStaticAttributes="false"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         processIsolation="false"
+         stopOnFailure="false"
+         bootstrap="../src/main/Qafoo/Bsoad/bootstrap.php"
+         syntaxCheck="false">
+
+    <filter>
+      <whitelist>
+          <directory suffix=".php">../src/main/</directory>
+      </whitelist>
+  </filter>
+  <groups>
+    <exclude>
+      <group>slow</group>
+    </exclude>
+  </groups>
+</phpunit>
