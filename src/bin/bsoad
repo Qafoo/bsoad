@@ -1,0 +1,13 @@
+#!/usr/bin/env php
+<?php
+
+namespace Qafoo\Bsoad;
+
+require __DIR__ . '/../main/Qafoo/Bsoad/bootstrap.php';
+
+$reader = new Reader\TShark(
+    new Writer\Json()
+);
+
+$reader->process( STDIN );
+
