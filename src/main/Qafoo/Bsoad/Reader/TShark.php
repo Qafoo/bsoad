@@ -8,6 +8,7 @@
 
 namespace Qafoo\Bsoad\Reader;
 use Qafoo\Bsoad\Reader;
+use Qafoo\Bsoad\Sorter;
 use Qafoo\Bsoad\Struct;
 
 /**
@@ -17,6 +18,24 @@ use Qafoo\Bsoad\Struct;
  */
 class TShark extends Reader
 {
+    /**
+     * Packet sorter
+     *
+     * @var Sorter
+     */
+    protected $sorter;
+
+    /**
+     * COnstruct from packet sorter
+     *
+     * @param Sorter $sorter
+     * @return void
+     */
+    public function __construct( Sorter $sorter )
+    {
+        $this->sorter = $sorter;
+    }
+
     /**
      * Process stream
      *
@@ -83,6 +102,15 @@ class TShark extends Reader
         $packet->tcpSequence = (int) $xPath->evaluate( 'string(
             //proto[@name="tcp"]//field[@name="tcp.seq"]/@show
         )' );
+        $packet->tcpLength = (int) $xPath->evaluate( 'string(
+            //proto[@name="tcp"]//field[@name="tcp.len"]/@show
+        )' );
+        $packet->tcpFlags = hexdec( $xPath->evaluate( 'string(
+            //proto[@name="tcp"]//field[@name="tcp.flags"]/@value
+        )' ) ) & 127;
+        $packet->tcpFlagsShow = $xPath->evaluate( 'string(
+            //proto[@name="tcp"]//field[@name="tcp.flags"]/@showname
+        )' );
 
         // Some packets seem not to be recognized by tshark as HTTP, so we
         // "parse" them ourselves.
@@ -98,13 +126,11 @@ class TShark extends Reader
             $this->handleParsedHttp( $packet, $xPath );
         }
 
-        // Skip non-HTTP-Packets
-        if ( !$packet->headers )
+        // We only care for actual HTTP packets
+        if ( $packet->headers )
         {
-            return;
+            $this->sorter->push( $packet );
         }
-
-        return $packet;
     }
 
     /**

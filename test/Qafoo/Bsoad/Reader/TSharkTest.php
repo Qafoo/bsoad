@@ -18,7 +18,8 @@ class TSharkTest extends \PHPUnit_Framework_TestCase
 {
     public function testExtracktPacketTimestamp()
     {
-        $reader = new TShark();
+        $reader = new TShark(
+        );
 
         $reader->process(
             fopen( __DIR__ . '/_fixtures/tshark_dump.pdml', 'r' )

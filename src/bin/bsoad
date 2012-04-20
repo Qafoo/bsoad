@@ -6,7 +6,7 @@ namespace Qafoo\Bsoad;
 require __DIR__ . '/../main/Qafoo/Bsoad/bootstrap.php';
 
 $reader = new Reader\TShark(
-    new Writer\Json()
+    new Sorter\Basic()
 );
 
 $reader->process( STDIN );

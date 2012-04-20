@@ -24,8 +24,36 @@ class Packet extends Struct
     public $tcpSrcPort;
     public $tcpDstPort;
     public $tcpSequence;
+    public $tcpLength;
+    public $tcpFlags;
+    public $tcpFlagsShow;
 
     public $headers = array();
     public $body;
+
+    public $queued = false;
+    public $processed = false;
+
+    /**
+     * Get string representation of packet
+     *
+     * @return string
+     */
+    public function __toString()
+    {
+        $time = new \DateTime( '@' . floor( $this->timestamp ) );
+        return sprintf( "[%s] %s:% 5d -> %s:% 5d (% 5d +% 5d) % 8s %s %s\n",
+            $time->format( 'r' ),
+            $this->srcHost,
+            $this->tcpSrcPort,
+            $this->dstHost,
+            $this->tcpDstPort,
+            $this->tcpSequence,
+            $this->tcpLength,
+            decbin( $this->tcpFlags ),
+            $this->tcpFlagsShow,
+            reset( $this->headers )
+        );
+    }
 }
 
