@@ -18,6 +18,7 @@ class Packet extends Struct
 {
     public $timestamp;
 
+    public $frame;
     public $srcHost;
     public $dstHost;
 
@@ -42,8 +43,9 @@ class Packet extends Struct
     public function __toString()
     {
         $time = new \DateTime( '@' . floor( $this->timestamp ) );
-        return sprintf( "[%s] %s:% 5d -> %s:% 5d (% 5d +% 5d) % 8s %s %s\n",
+        return sprintf( "[%s] % 4d %s:% 5d -> %s:% 5d (% 5d +% 5d) % 8s %s %s\n",
             $time->format( 'r' ),
+            $this->frame,
             $this->srcHost,
             $this->tcpSrcPort,
             $this->dstHost,

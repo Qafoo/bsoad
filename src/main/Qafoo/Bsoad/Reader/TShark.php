@@ -86,6 +86,10 @@ class TShark extends Reader
             //proto[@name="geninfo"]//field[@name="timestamp"]/@value
         )' );
 
+        $packet->frame = $xPath->evaluate( 'string(
+            //proto[@name="frame"]//field[@name="frame.number"]/@show
+        )' );
+
         $packet->srcHost = $xPath->evaluate( 'string(
             //proto[@name="ip"]//field[@name="ip.src_host"]/@show
         )' );
