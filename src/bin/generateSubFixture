@@ -1,0 +1,26 @@
+#!/usr/bin/env php
+<?php
+
+$doc = new DOMDocument();
+$doc->formatOutput = true;
+$doc->preserveWhiteSpace = false;
+$doc->load( $argv[1] );
+
+$target = new DOMDocument();
+$target->formatOutput = true;
+$target->preserveWhiteSpace = true;
+$target->appendChild( $root = $target->createElement( 'pdml' ) );
+
+$xpath = new DOMXPath( $doc );
+foreach ( $xpath->query( '
+        //proto[@name="tcp"]//field[( @name="tcp.srcport" or @name="tcp.dstport" ) and @show="' . $argv[2] . '"]/ancestor::packet
+    ' ) as $packet )
+{
+    $packet = $packet->cloneNode( true );
+    $root->appendChild(
+        $target->importNode( $packet, true )
+    );
+}
+
+echo $target->saveXml();
+
