@@ -59,6 +59,7 @@ class Queue
 
         $this->checkFinished();
         $this->parseNextHttpInteraction();
+        var_dump( $this->messages );
     }
 
     /**
@@ -111,112 +112,129 @@ class Queue
      */
     public function parseNextHttpInteraction()
     {
-        foreach ( $this->data as $port => $copy )
+        foreach ( $this->data as $port => $data )
         {
-            while ( strlen( ( $copy ) ) )
+            while ( strlen( ( $data ) ) )
             {
-                $data = $copy;
-                if ( preg_match( '(\\A(?P<method>[A-Z]+) +(?P<path>[^\\s]+) +(?P<version>HTTP/\\d+\\.\\d+)\\r?$)muS', $data, $match ) )
+                $result = $this->parseHttpMessage( $port, $data );
+                if ( $result === false )
                 {
-                    $message = new Struct\Message\Request(
-                        $match['version'],
-                        $match['method'],
-                        $match['path']
-                    );
+                    continue 2;
                 }
-                elseif ( preg_match( '(\\A(?P<version>HTTP/\\d+\.\\d+) +(?P<code>\\d+) +(?P<message>.*)\\r?$)muS', $data, $match ) )
-                {
-                    $message = new Struct\Message\Response(
-                        $match['version'],
-                        $match['code'],
-                        $match['message']
-                    );
-                }
-                else
-                {
-                    throw new \RuntimeException( "Invalid HTTP message: " . substr( $data, 0, 100 ) );
-                }
-
-                // Cut of read header
-                $data = substr( $data, strlen( $match[0] ) + 1 );
-                $message->headers[] = trim( $match[0] );
-
-                // Read more headers
-                $contentLength    = false;
-                $transferEncoding = false;
-                while ( preg_match( '(\\A(?P<name>[A-Za-z-]+): +(?P<value>.*)\\r?$)muS', $data, $match ) )
-                {
-                    $message->headers[] = trim( $match[0] );
-                    $data = substr( $data, strlen( $match[0] ) + 1 );
-
-                    if ( $match['name'] === 'Content-Length' )
-                    {
-                        $contentLength = (int) $match['value'];
-                    }
-
-                    if ( $match['name'] === 'Transfer-Encoding' )
-                    {
-                        $transferEncoding = $match['value'];
-                    }
-                }
-                $data = substr( $data, 2 );
-
-                // Read response body
-                $body = '';
-                if ( $transferEncoding === false )
-                {
-                    // HTTP 1.1 supports chunked transfer encoding, if the according
-                    // header is not set, just read the specified amount of bytes.
-                    $bytesToRead = $contentLength ?: 0;
-
-                    // Read body only as specified by content length, everything else
-                    // are just footnotes, which are not handled yet.
-                    if ( strlen( $data ) < $bytesToRead )
-                    {
-                        continue 2;
-                    }
-                    $body = substr( $data, 0, $bytesToRead );
-                    $data = substr( $data, $bytesToRead + 2 );
-                }
-                else
-                {
-                    // When Transfer-Encoding=chunked has been specified in the
-                    // response headers, read all chunks and sum them up to the body,
-                    // until the server has finished. Ignore all additional HTTP
-                    // options after that.
-                    do {
-                        if ( !strlen( $data ) )
-                        {
-                            // Chunked response not complete yet, but no more
-                            // data left.
-                            continue 3;
-                        }
-
-                        // Get bytes to read, with option appending comment
-                        if ( preg_match( '(\\A(?P<bytes>[0-9a-f]+)(?:;.*)?\\r?$)mS', $data, $match ) )
-                        {
-                            $bytesToRead = hexdec( $match['bytes'] );
-                            $data = substr( $data, strlen( $match[0] ) + 1 );
-
-                            // Read body only as specified by chunk sizes, everything else
-                            // are just footnotes, which are not relevant for us.
-                            $bytesLeft = $bytesToRead;
-                            if ( strlen( $data ) < $bytesLeft )
-                            {
-                                continue 3;
-                            }
-                            $body .= substr( $data, 0, $bytesLeft );
-                            $data = substr( $data, $bytesLeft + 2 );
-                        }
-                    } while ( $bytesToRead > 0 );
-                }
-
-                $message->body = $body;
-
-                $this->messages[$port][] = $message;
-                $this->data[$port] = $copy = $data;
+                $this->data[$port] = $data = $result;
             }
         }
+    }
+
+    /**
+     * Parse HTTP message from buffer
+     *
+     * If no complete HTTP message could be parsed this method will return
+     * false. Otherwise the remaining buffer will be returned.
+     *
+     * @param int $port
+     * @param string $data
+     * @return void
+     */
+    protected function parseHttpMessage( $port, $data )
+    {
+        if ( preg_match( '(\\A(?P<method>[A-Z]+) +(?P<path>[^\\s]+) +(?P<version>HTTP/\\d+\\.\\d+)\\r?$)muS', $data, $match ) )
+        {
+            $message = new Struct\Message\Request(
+                $match['version'],
+                $match['method'],
+                $match['path']
+            );
+        }
+        elseif ( preg_match( '(\\A(?P<version>HTTP/\\d+\.\\d+) +(?P<code>\\d+) +(?P<message>.*)\\r?$)muS', $data, $match ) )
+        {
+            $message = new Struct\Message\Response(
+                $match['version'],
+                $match['code'],
+                $match['message']
+            );
+        }
+        else
+        {
+            throw new \RuntimeException( "Invalid HTTP message: " . substr( $data, 0, 100 ) );
+        }
+
+        // Cut of read header
+        $data = substr( $data, strlen( $match[0] ) + 1 );
+        $message->headers[] = trim( $match[0] );
+
+        // Read more headers
+        $contentLength    = false;
+        $transferEncoding = false;
+        while ( preg_match( '(\\A(?P<name>[A-Za-z-]+): +(?P<value>.*)\\r?$)muS', $data, $match ) )
+        {
+            $message->headers[] = trim( $match[0] );
+            $data = substr( $data, strlen( $match[0] ) + 1 );
+
+            if ( $match['name'] === 'Content-Length' )
+            {
+                $contentLength = (int) $match['value'];
+            }
+
+            if ( $match['name'] === 'Transfer-Encoding' )
+            {
+                $transferEncoding = $match['value'];
+            }
+        }
+        $data = substr( $data, 2 );
+
+        // Read response body
+        $body = '';
+        if ( $transferEncoding === false )
+        {
+            // HTTP 1.1 supports chunked transfer encoding, if the according
+            // header is not set, just read the specified amount of bytes.
+            $bytesToRead = $contentLength ?: 0;
+
+            // Read body only as specified by content length, everything else
+            // are just footnotes, which are not handled yet.
+            if ( strlen( $data ) < $bytesToRead )
+            {
+                return false;
+            }
+            $body = substr( $data, 0, $bytesToRead );
+            $data = substr( $data, $bytesToRead + 2 );
+        }
+        else
+        {
+            // When Transfer-Encoding=chunked has been specified in the
+            // response headers, read all chunks and sum them up to the body,
+            // until the server has finished. Ignore all additional HTTP
+            // options after that.
+            do {
+                if ( !strlen( $data ) )
+                {
+                    // Chunked response not complete yet, but no more
+                    // data left.
+                    return false;
+                }
+
+                // Get bytes to read, with option appending comment
+                if ( preg_match( '(\\A(?P<bytes>[0-9a-f]+)(?:;.*)?\\r?$)mS', $data, $match ) )
+                {
+                    $bytesToRead = hexdec( $match['bytes'] );
+                    $data = substr( $data, strlen( $match[0] ) + 1 );
+
+                    // Read body only as specified by chunk sizes, everything else
+                    // are just footnotes, which are not relevant for us.
+                    $bytesLeft = $bytesToRead;
+                    if ( strlen( $data ) < $bytesLeft )
+                    {
+                        return false;
+                    }
+                    $body .= substr( $data, 0, $bytesLeft );
+                    $data = substr( $data, $bytesLeft + 2 );
+                }
+            } while ( $bytesToRead > 0 );
+        }
+
+        $message->body = $body;
+        $this->messages[$port][] = $message;
     }
 }
 
