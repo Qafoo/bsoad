@@ -88,9 +88,13 @@ class Queue
 
                 if ( $packet->tcpSequence == $offset )
                 {
-                    $packet->queued = true;
                     $offset += max( $packet->tcpLength, 1 );
-                    $this->data[$port] .= $packet->data;
+                    if ( !$packet->queued )
+                    {
+                        $this->data[$port] .= $packet->data;
+                    }
+
+                    $packet->queued = true;
                 }
                 else
                 {
@@ -109,8 +113,9 @@ class Queue
     {
         foreach ( $this->data as $port => $copy )
         {
-            do {
-                $data = ltrim( $copy );
+            while ( strlen( ( $copy ) ) )
+            {
+                $data = $copy;
                 if ( preg_match( '(\\A(?P<method>[A-Z]+) +(?P<path>[^\\s]+) +(?P<version>HTTP/\\d+\\.\\d+)\\r?$)muS', $data, $match ) )
                 {
                     $message = new Struct\Message\Request(
@@ -133,11 +138,12 @@ class Queue
                 }
 
                 // Cut of read header
+                $data = substr( $data, strlen( $match[0] ) + 1 );
                 $message->headers[] = trim( $match[0] );
-                $data = ltrim( substr( $data, strlen( $match[0] ) ) );
 
                 // Read more headers
-                $contentLength = false;
+                $contentLength    = false;
+                $transferEncoding = false;
                 while ( preg_match( '(\\A(?P<name>[A-Za-z-]+): +(?P<value>.*)\\r?$)muS', $data, $match ) )
                 {
                     $message->headers[] = trim( $match[0] );
@@ -147,25 +153,67 @@ class Queue
                     {
                         $contentLength = (int) $match['value'];
                     }
+
+                    if ( $match['name'] === 'Transfer-Encoding' )
+                    {
+                        $transferEncoding = $match['value'];
+                    }
                 }
                 $data = substr( $data, 2 );
 
-                if ( $contentLength !== false )
+                // Read response body
+                $body = '';
+                if ( $transferEncoding === false )
                 {
-                    $message->body = substr( $data, 0, $contentLength );
-                    $data = substr( $data, $contentLength );
-                }
+                    // HTTP 1.1 supports chunked transfer encoding, if the according
+                    // header is not set, just read the specified amount of bytes.
+                    $bytesToRead = $contentLength ?: 0;
 
-                if ( strlen( $message->body ) < $contentLength )
+                    // Read body only as specified by content length, everything else
+                    // are just footnotes, which are not handled yet.
+                    if ( strlen( $data ) < $bytesToRead )
+                    {
+                        continue 2;
+                    }
+                    $body = substr( $data, 0, $bytesToRead );
+                    $data = substr( $data, $bytesToRead + 2 );
+                }
+                else
                 {
-                    // Packet is not complete yet … skip processing
-                    continue 2;
+                    // When Transfer-Encoding=chunked has been specified in the
+                    // response headers, read all chunks and sum them up to the body,
+                    // until the server has finished. Ignore all additional HTTP
+                    // options after that.
+                    do {
+                        if ( !strlen( $data ) )
+                        {
+                            // Chunked response not complete yet, but no more
+                            // data left.
+                            continue 3;
+                        }
+
+                        // Get bytes to read, with option appending comment
+                        if ( preg_match( '(\\A(?P<bytes>[0-9a-f]+)(?:;.*)?\\r?$)mS', $data, $match ) )
+                        {
+                            $bytesToRead = hexdec( $match['bytes'] );
+                            $data = substr( $data, strlen( $match[0] ) + 1 );
+
+                            // Read body only as specified by chunk sizes, everything else
+                            // are just footnotes, which are not relevant for us.
+                            $bytesLeft = $bytesToRead;
+                            if ( strlen( $data ) < $bytesLeft )
+                            {
+                                continue 3;
+                            }
+                            $body .= substr( $data, 0, $bytesLeft );
+                            $data = substr( $data, $bytesLeft + 2 );
+                        }
+                    } while ( $bytesToRead > 0 );
                 }
 
                 $this->message[$port][] = $message;
                 $this->data[$port] = $copy = $data;
             }
-            while ( strlen( trim( $data ) ) );
         }
     }
 }
