@@ -48,8 +48,7 @@ class Queue
         // Reset queue if a first package in the current queue is received
         // again. This means a connection on the same source / target port
         // combination has been reestablished after a FIN.
-        if ( ( $packet->tcpSequence === 1 ) &&
-             ( isset( $this->packets[$packet->tcpSrcPort] ) ) &&
+        if ( ( isset( $this->packets[$packet->tcpSrcPort] ) ) &&
              ( isset( $this->packets[$packet->tcpSrcPort][1] ) ) )
         {
             $this->packets[$packet->tcpSrcPort] = array();
@@ -76,13 +75,21 @@ class Queue
                 $this->data[$port] = '';
             }
 
-            $offset = 1;
+            $offset = false;
             foreach ( $packets as $packet )
             {
+                if ( $offset === false )
+                {
+                    // @TODO: This might be wrong, if we receive the second
+                    // packet first. OTOH we do not want to process the entire
+                    // TCP stream (SYN/ACK/FIN handling)…
+                    $offset = $packet->tcpSequence;
+                }
+
                 if ( $packet->tcpSequence == $offset )
                 {
                     $packet->queued = true;
-                    $offset += $packet->tcpLength;
+                    $offset += max( $packet->tcpLength, 1 );
                     $this->data[$port] .= $packet->data;
                 }
                 else
