@@ -127,7 +127,6 @@ class Tcpdump extends Reader
         $tcp      = $this->parseTcpHeader( $packetContent, $packet );
 
         $this->sorter->push( $packet );
-
         return $buffer;
     }
 
@@ -199,8 +198,6 @@ class Tcpdump extends Reader
         $packet->srcHost = long2ip( $data['src'] );
         $packet->dstHost = long2ip( $data['dst'] );
 
-        $packet->tcpLength = $data['length'] - 20;
-
         return $data;
     }
 
@@ -228,15 +225,7 @@ class Tcpdump extends Reader
             20
         );
 
-        $flags = array();
-        $flags['urg'] = (bool) ( $data['offset'] & ( 1 << 5 ) );
-        $flags['ack'] = (bool) ( $data['offset'] & ( 1 << 4 ) );
-        $flags['psh'] = (bool) ( $data['offset'] & ( 1 << 3 ) );
-        $flags['rst'] = (bool) ( $data['offset'] & ( 1 << 2 ) );
-        $flags['syn'] = (bool) ( $data['offset'] & ( 1 << 1 ) );
-        $flags['fin'] = (bool) ( $data['offset'] & ( 1 << 0 ) );
-        $data['flags'] = $flags;
-
+        $data['flags']  = $data['offset'] & ( ( 1 << 6 ) - 1 );
         $data['offset'] = $data['offset'] >> 12;
 
         if ( $data['urgent'] > 0 )
@@ -248,9 +237,7 @@ class Tcpdump extends Reader
         $packet->tcpDstPort  = $data['dst'];
 
         $packet->tcpSequence = $data['seqNo'];
-        $packet->tcpLength  -= $data['offset'] * 4;
-
-        $packet->tcpFlags = $flags;
+        $packet->tcpFlags    = $data['flags'];
 
         $data['options'] = array();
         for ( $i = 5; $i < $data['offset']; ++$i )
@@ -259,7 +246,8 @@ class Tcpdump extends Reader
             $data['options'][] = reset( $option );
         }
 
-        $packet->data = $buffer;
+        $packet->data      = $buffer;
+        $packet->tcpLength = strlen( $packet->data );
 
         return $data;
     }
