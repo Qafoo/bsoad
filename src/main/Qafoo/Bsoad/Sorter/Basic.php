@@ -32,6 +32,11 @@ class Basic extends Sorter
      */
     public function push( Struct\Packet $packet )
     {
+        if ( $packet->tcpLength === 0 )
+        {
+            return;
+        }
+
         $queueName = $this->getQueueName( $packet );
 
         if ( !isset( $this->queues[$queueName] ) )

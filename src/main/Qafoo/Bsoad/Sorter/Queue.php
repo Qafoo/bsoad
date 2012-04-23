@@ -19,9 +19,23 @@ class Queue
     /**
      * Packets in queue
      *
-     * @var array
+     * @var Struct\Packets[][]
      */
     protected $packets = array();
+
+    /**
+     * Aggregated data from packets
+     *
+     * @var string[]
+     */
+    protected $data = array();
+
+    /**
+     * Parsed messages from input and output data streams
+     *
+     * @var Struct\Message[]
+     */
+    protected $messages = array();
 
     /**
      * Push a packet to be sorted
@@ -31,8 +45,8 @@ class Queue
      */
     public function push( Struct\Packet $packet )
     {
-        // Reset queue if a first package in the current queue is received 
-        // again. This means a connection on the same source / target port 
+        // Reset queue if a first package in the current queue is received
+        // again. This means a connection on the same source / target port
         // combination has been reestablished after a FIN.
         if ( ( $packet->tcpSequence === 1 ) &&
              ( isset( $this->packets[$packet->tcpSrcPort] ) ) &&
@@ -45,6 +59,7 @@ class Queue
         ksort( $this->packets[$packet->tcpSrcPort], SORT_NUMERIC );
 
         $this->checkFinished();
+        $this->parseNextHttpInteraction();
     }
 
     /**
@@ -56,6 +71,11 @@ class Queue
     {
         foreach ( $this->packets as $port => $packets )
         {
+            if ( !isset( $this->data[$port] ) )
+            {
+                $this->data[$port] = '';
+            }
+
             $offset = 1;
             foreach ( $packets as $packet )
             {
@@ -63,6 +83,7 @@ class Queue
                 {
                     $packet->queued = true;
                     $offset += $packet->tcpLength;
+                    $this->data[$port] .= $packet->data;
                 }
                 else
                 {
@@ -70,33 +91,74 @@ class Queue
                 }
             }
         }
+    }
 
-        $ports = array_keys( $this->packets );
-        if ( count( $ports ) < 2 )
+    /**
+     * parseNextHttpInteraction
+     *
+     * @return void
+     */
+    public function parseNextHttpInteraction()
+    {
+        foreach ( $this->data as $port => $copy )
         {
-            return;
-        }
+            do {
+                $data = ltrim( $copy );
+                if ( preg_match( '(\\A(?P<method>[A-Z]+) +(?P<path>[^\\s]+) +(?P<version>HTTP/\\d+\\.\\d+)\\r?$)muS', $data, $match ) )
+                {
+                    $message = new Struct\Message\Request(
+                        $match['version'],
+                        $match['method'],
+                        $match['path']
+                    );
+                }
+                elseif ( preg_match( '(\\A(?P<version>HTTP/\\d+\.\\d+) +(?P<code>\\d+) +(?P<message>.*)\\r?$)muS', $data, $match ) )
+                {
+                    $message = new Struct\Message\Response(
+                        $match['version'],
+                        $match['code'],
+                        $match['message']
+                    );
+                }
+                else
+                {
+                    throw new \RuntimeException( "Invalid HTTP message: " . substr( $data, 0, 100 ) );
+                }
 
-        reset( $this->packets[$ports[0]] );
-        reset( $this->packets[$ports[1]] );
+                // Cut of read header
+                $message->headers[] = trim( $match[0] );
+                $data = ltrim( substr( $data, strlen( $match[0] ) ) );
 
-        while ( ( $p1 = current( $this->packets[$ports[0]] ) ) &&
-                ( $p1->queued === true ) &&
-                ( $p2 = current( $this->packets[$ports[1]] ) ) &&
-                ( $p2->queued === true ) )
-        {
-            next( $this->packets[$ports[0]] );
-            next( $this->packets[$ports[1]] );
+                // Read more headers
+                $contentLength = false;
+                while ( preg_match( '(\\A(?P<name>[A-Za-z-]+): +(?P<value>.*)\\r?$)muS', $data, $match ) )
+                {
+                    $message->headers[] = trim( $match[0] );
+                    $data = substr( $data, strlen( $match[0] ) + 1 );
 
-            if ( $p1->processed === true )
-            {
-                continue;
+                    if ( $match['name'] === 'Content-Length' )
+                    {
+                        $contentLength = (int) $match['value'];
+                    }
+                }
+                $data = substr( $data, 2 );
+
+                if ( $contentLength !== false )
+                {
+                    $message->body = substr( $data, 0, $contentLength );
+                    $data = substr( $data, $contentLength );
+                }
+
+                if ( strlen( $message->body ) < $contentLength )
+                {
+                    // Packet is not complete yet … skip processing
+                    continue 2;
+                }
+
+                $this->message[$port][] = $message;
+                $this->data[$port] = $copy = $data;
             }
-
-            $p1->processed = true;
-            $p2->processed = true;
-
-            echo "Writing:\n - $p1 - $p2\n";
+            while ( strlen( trim( $data ) ) );
         }
     }
 }
