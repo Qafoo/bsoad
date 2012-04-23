@@ -86,14 +86,15 @@ class Packet extends Struct
      */
     public function __toString()
     {
-        return sprintf( "%s:% 5d -> %s:% 5d (% 10d +% 5d) %06s\n",
+        return sprintf( "%s:% 5d -> %s:% 5d (% 10d +% 5d) %06s (%d byte)\n",
             $this->srcHost,
             $this->tcpSrcPort,
             $this->dstHost,
             $this->tcpDstPort,
             $this->tcpSequence,
             $this->tcpLength,
-            decbin( $this->tcpFlags )
+            decbin( $this->tcpFlags ),
+            $this->tcpLength
         );
     }
 }
