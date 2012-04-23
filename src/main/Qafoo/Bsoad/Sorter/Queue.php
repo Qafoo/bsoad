@@ -165,7 +165,7 @@ class Queue
                 $match['path']
             );
         }
-        elseif ( preg_match( '(\\A(?P<version>HTTP/\\d+\.\\d+) +(?P<code>\\d+) +(?P<message>.*)\\r?$)muS', $data, $match ) )
+        elseif ( preg_match( '(\\A(?P<version>HTTP/\\d+\.\\d+) +(?P<code>\\d+) +(?P<message>[^\\r\\n]*)\\r?$)muS', $data, $match ) )
         {
             $message = new Struct\Message\Response(
                 $match['version'],
