@@ -17,20 +17,6 @@ use Qafoo\Bsoad\Struct;
 class Packet extends Struct
 {
     /**
-     * Packet timestamp
-     *
-     * @var float
-     */
-    public $timestamp;
-
-    /**
-     * Frame number
-     *
-     * @var int
-     */
-    public $frame;
-
-    /**
      * Source host
      *
      * @var string
@@ -80,13 +66,6 @@ class Packet extends Struct
     public $tcpFlags;
 
     /**
-     * TCP flags description
-     *
-     * @var string
-     */
-    public $tcpFlagsShow;
-
-    /**
      * Package data
      *
      * @var string
@@ -107,18 +86,14 @@ class Packet extends Struct
      */
     public function __toString()
     {
-        $time = new \DateTime( '@' . floor( $this->timestamp ) );
-        return sprintf( "[%s] % 4d %s:% 5d -> %s:% 5d (% 5d +% 5d) % 8s %s\n",
-            $time->format( 'r' ),
-            $this->frame,
+        return sprintf( "%s:% 5d -> %s:% 5d (% 10d +% 5d) %06s\n",
             $this->srcHost,
             $this->tcpSrcPort,
             $this->dstHost,
             $this->tcpDstPort,
             $this->tcpSequence,
             $this->tcpLength,
-            decbin( $this->tcpFlags ),
-            $this->tcpFlagsShow
+            decbin( $this->tcpFlags )
         );
     }
 }
