@@ -9,6 +9,7 @@
 namespace Qafoo\Bsoad\Sorter;
 use Qafoo\Bsoad\Sorter;
 use Qafoo\Bsoad\Struct;
+use Qafoo\Bsoad\Writer;
 
 /**
  * Basic packet sorter
@@ -23,6 +24,24 @@ class Basic extends Sorter
      * @var Queue[]
      */
     protected $queues;
+
+    /**
+     * Output writer
+     *
+     * @var Writer
+     */
+    protected $writer;
+
+    /**
+     * Construct from target writer
+     *
+     * @param Writer $writer
+     * @return void
+     */
+    public function __construct( Writer $writer )
+    {
+        $this->writer = $writer;
+    }
 
     /**
      * Push a packet to be sorted
@@ -41,7 +60,7 @@ class Basic extends Sorter
 
         if ( !isset( $this->queues[$queueName] ) )
         {
-            $this->queues[$queueName] = new Queue();
+            $this->queues[$queueName] = new Queue( $this->writer );
         }
 
         $this->queues[$queueName]->push( $packet );

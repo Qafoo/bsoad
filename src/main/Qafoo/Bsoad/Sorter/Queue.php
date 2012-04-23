@@ -8,6 +8,7 @@
 
 namespace Qafoo\Bsoad\Sorter;
 use Qafoo\Bsoad\Struct;
+use Qafoo\Bsoad\Writer;
 
 /**
  * Sorting queue
@@ -38,6 +39,24 @@ class Queue
     protected $messages = array();
 
     /**
+     * Output writer
+     *
+     * @var Writer
+     */
+    protected $writer;
+
+    /**
+     * Construct from target writer
+     *
+     * @param Writer $writer
+     * @return void
+     */
+    public function __construct( Writer $writer )
+    {
+        $this->writer = $writer;
+    }
+
+    /**
      * Push a packet to be sorted
      *
      * @param Struct\Packet $packet
@@ -59,7 +78,7 @@ class Queue
 
         $this->checkFinished();
         $this->parseNextHttpInteraction();
-        var_dump( $this->messages );
+        $this->pushHttpMessages();
     }
 
     /**
@@ -235,6 +254,39 @@ class Queue
 
         $message->body = $body;
         $this->messages[$port][] = $message;
+    }
+
+    /**
+     * Push complete HTTP interactions to output writer
+     *
+     * @return void
+     */
+    public function pushHttpMessages()
+    {
+        $ports = array_keys( $this->messages );
+        if ( count( $ports ) < 2 )
+        {
+            return;
+        }
+
+        if ( !count( $this->messages[$ports[0]] ) ||
+             !count( $this->messages[$ports[1]] ) )
+        {
+            return;
+        }
+
+        $request  = array_shift( $this->messages[$ports[0]] );
+        $response = array_shift( $this->messages[$ports[1]] );
+
+        if ( $request instanceof Struct\Message\Response )
+        {
+            $tmp = $request;
+            $request = $response;
+            $response = $tmp;
+            unset( $tmp );
+        }
+
+        $this->writer->write( new Struct\Interaction( $request, $response ) );
     }
 }
 

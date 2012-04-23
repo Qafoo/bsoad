@@ -44,5 +44,19 @@ class Request extends Message
         $this->method  = $method;
         $this->path    = $path;
     }
+
+    /**
+     * Return string representation
+     *
+     * @return string
+     */
+    public function __toString()
+    {
+        return sprintf( '%s %s %s',
+            $this->version,
+            $this->method,
+            $this->path
+        );
+    }
 }
 

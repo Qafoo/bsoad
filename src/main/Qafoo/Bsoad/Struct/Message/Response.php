@@ -44,5 +44,20 @@ class Response extends Message
         $this->code    = $code;
         $this->message = $message;
     }
+
+    /**
+     * Return string representation
+     *
+     * @return string
+     */
+    public function __toString()
+    {
+        return sprintf( '%s % 3d %s (%d byte)',
+            $this->version,
+            $this->code,
+            $this->message,
+            strlen( $this->body )
+        );
+    }
 }
 

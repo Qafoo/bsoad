@@ -14,7 +14,7 @@ use Qafoo\Bsoad\Struct;
  *
  * @version $Revision$
  */
-class Message extends Struct
+abstract class Message extends Struct
 {
     /**
      * HTTP version
