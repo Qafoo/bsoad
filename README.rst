@@ -12,7 +12,13 @@ Usage
 
 To use this thingy on localhost, do something like::
 
-    tcpdump -l -i lo 'tcp and port 80' | bsoad
+    tcpdump -l -i lo 'tcp and port 80' -w - | bsoad
+
+Important is the ``-w -`` flag for TCPDump so that the raw binary output is
+written to stdout.
+
+You can always let tcpdump write into some file and pipe that into ``bsoad``
+later, of course.
 
 
 ..
