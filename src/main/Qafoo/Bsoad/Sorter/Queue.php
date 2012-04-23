@@ -211,7 +211,9 @@ class Queue
                     } while ( $bytesToRead > 0 );
                 }
 
-                $this->message[$port][] = $message;
+                $message->body = $body;
+
+                $this->messages[$port][] = $message;
                 $this->data[$port] = $copy = $data;
             }
         }
