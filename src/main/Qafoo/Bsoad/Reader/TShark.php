@@ -122,19 +122,17 @@ class TShark extends Reader
                 //proto[@name="tcp"]//field[@name="tcp.data"]/@value
             )' ) )
         {
-            $this->parseRawHttp( $packet, $this->decodeHexString( $rawData ) );
+            $packet->data = $this->decodeHexString( $rawData );
         }
 
         if ( $xPath->query( '//proto[@name="http"]' )->length )
         {
+            // Reverts the HTTP dissecting, whichdoes not always works, done by
+            // tshark.
             $this->handleParsedHttp( $packet, $xPath );
         }
 
-        // We only care for actual HTTP packets
-        if ( $packet->headers )
-        {
-            $this->sorter->push( $packet );
-        }
+        $this->sorter->push( $packet );
     }
 
     /**
@@ -198,32 +196,14 @@ class TShark extends Reader
                 // from tshark will follow. We skip those.
                 break;
             }
-            $packet->headers[] = $value;
+            $packet->data .= $value . "\r\n";
         }
 
-        $packet->body = $this->decodeHexString( $xPath->evaluate( 'string(
+        $packet->data .= "\r\n";
+        $packet->data .= $this->decodeHexString( $xPath->evaluate( 'string(
             //proto[@name="http"]//field[@name="data.data"]/@value
         )' ) );
-    }
-
-    /**
-     * Parse the RAW HTTP data into our header and body struct
-     *
-     * @param Struct\Packet $packet
-     * @param string $data
-     * @return void
-     */
-    protected function parseRawHttp( Struct\Packet $packet, $data )
-    {
-        $lines = preg_split( '(\r\n|\r|\n)', $data );
-
-        while ( ( $line = array_shift( $lines ) ) &&
-                ( trim( $line ) !== '' ) )
-        {
-            $packet->headers[] = trim( $line );
-        }
-
-        $packet->body = implode( "\n", $lines );
+        $packet->data .= "\r\n";
     }
 }
 
