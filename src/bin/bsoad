@@ -7,7 +7,7 @@ require __DIR__ . '/../main/Qafoo/Bsoad/bootstrap.php';
 
 $reader = new Reader\Tcpdump(
     new Sorter\Basic(
-        new Writer\Debug()
+        new Writer\Json()
     )
 );
 
