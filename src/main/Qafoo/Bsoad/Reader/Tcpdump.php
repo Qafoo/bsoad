@@ -131,22 +131,24 @@ class Tcpdump extends Reader
         }
 
         $packetHeader = substr( $buffer, 0, 16 );
-        $packet = $this->read( 'Vsec/Vusec/Vlength/Vorig', $packetHeader, 16 );
-        if ( $packet['length'] < 0 || $packet['orig'] < 0 )
+        $packetData   = $this->read( 'Vsec/Vusec/Vlength/Vorig', $packetHeader, 16 );
+        if ( $packetData['length'] < 0 || $packetData['orig'] < 0 )
         {
             throw new \RuntimeException( "Could not parse packet header" );
         }
 
-        $packetContent = substr( $buffer, 16, $packet['length'] );
+        $packetContent = substr( $buffer, 16, $packetData['length'] );
         if ( !strlen( $packetContent ) ||
-             ( strlen( $packetContent ) < $packet['length'] ) )
+             ( strlen( $packetContent ) < $packetData['length'] ) )
         {
             return $buffer;
         }
 
-        $buffer = substr( $buffer, 16 + $packet['length'] );
+        $buffer = substr( $buffer, 16 + $packetData['length'] );
 
-        $packet   = new Struct\Packet();
+        $packet = new Struct\Packet();
+        $packet->time = (float) ( $packetData['sec'] . '.' . $packetData['usec'] );
+
         $ethernet = $this->parseEthernetHeader( $packetContent, $packet );
         $ip       = $this->parseIpHeader( $packetContent, $packet );
         $tcp      = $this->parseTcpHeader( $packetContent, $packet );

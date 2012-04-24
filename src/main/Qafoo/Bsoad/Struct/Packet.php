@@ -17,6 +17,13 @@ use Qafoo\Bsoad\Struct;
 class Packet extends Struct
 {
     /**
+     * Time
+     *
+     * @var float
+     */
+    public $time;
+
+    /**
      * Source host
      *
      * @var string
@@ -86,7 +93,9 @@ class Packet extends Struct
      */
     public function __toString()
     {
-        return sprintf( "%s:% 5d -> %s:% 5d (% 10d +% 5d) %06s (%d byte)\n",
+        $time = new \DateTime( '@' . floor( $this->time ) );
+        return sprintf( "[%s] %s:% 5d -> %s:% 5d (% 10d +% 5d) %06s (%d byte)\n",
+            $time->format( 'r' ),
             $this->srcHost,
             $this->tcpSrcPort,
             $this->dstHost,
