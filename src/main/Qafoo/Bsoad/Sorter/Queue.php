@@ -157,7 +157,7 @@ class Queue
      */
     protected function parseHttpMessage( $port, $data )
     {
-        if ( preg_match( '(\\A(?P<method>[A-Z]+) +(?P<path>[^\\s]+) +(?P<version>HTTP/\\d+\\.\\d+)\\r?$)muS', $data, $match ) )
+        if ( preg_match( '(\\A(?P<method>[A-Z]+) +(?P<path>[^\\s]+) +(?P<version>HTTP/\\d+\\.\\d+)\\r?$)mS', $data, $match ) )
         {
             $message = new Struct\Message\Request(
                 $match['version'],
@@ -165,7 +165,7 @@ class Queue
                 $match['path']
             );
         }
-        elseif ( preg_match( '(\\A(?P<version>HTTP/\\d+\.\\d+) +(?P<code>\\d+) +(?P<message>[^\\r\\n]*)\\r?$)muS', $data, $match ) )
+        elseif ( preg_match( '(\\A(?P<version>HTTP/\\d+\.\\d+) +(?P<code>\\d+) +(?P<message>[^\\r\\n]*)\\r?$)mS', $data, $match ) )
         {
             $message = new Struct\Message\Response(
                 $match['version'],
