@@ -51,6 +51,7 @@ class Tcpdump extends Reader
      */
     public function process( $stream )
     {
+        socket_set_blocking( $stream, false );
         while ( !feof( $stream ) )
         {
             $buffer = '';
@@ -60,12 +61,17 @@ class Tcpdump extends Reader
                 $buffer .= $line;
             }
 
-            if ( !$this->checked )
+            if ( !$this->checked && $buffer )
             {
                 $buffer = $this->checkFileHeader( $buffer );
             }
 
-            while( $buffer = $this->analyzePacket( $buffer ) );
+            while( $this->checked && $buffer )
+            {
+                $buffer = $this->analyzePacket( $buffer );
+            }
+
+            usleep( 100 * 1000 );
         }
     }
 
@@ -119,6 +125,12 @@ class Tcpdump extends Reader
         }
 
         $packetContent = substr( $buffer, 0, $packet['length'] );
+
+        if ( strlen( $packetContent ) < $packet['length'] )
+        {
+            return $buffer;
+        }
+
         $buffer = substr( $buffer, $packet['length'] );
 
         $packet   = new Struct\Packet();
