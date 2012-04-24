@@ -14,6 +14,7 @@ use Qafoo\Bsoad\Writer;
  * Sorting queue
  *
  * @version $Revision$
+ * @private
  */
 class Queue
 {
