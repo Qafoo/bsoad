@@ -253,7 +253,7 @@ class Queue
     protected function parseHeaders( $data, Struct\Message $message )
     {
         // Read more headers
-        while ( preg_match( '(\\A(?P<name>[A-Za-z-]+): +(?P<value>.*)\\r?$)muS', $data, $match ) )
+        while ( preg_match( '(\\A(?P<name>[A-Za-z-]+): +(?P<value>[^\\r]*)\\r?$)muS', $data, $match ) )
         {
             $message->rawHeaders[] = rtrim( $match[0], "\r" );
             $message->headers[$match['name']] = $match['value'];
