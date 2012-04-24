@@ -52,9 +52,10 @@ class Request extends Message
      */
     public function __toString()
     {
-        return sprintf( '%s %s %s',
+        return sprintf( '%s %s http://%s/%s',
             $this->version,
             $this->method,
+            $this->headers['Host'],
             $this->path
         );
     }
