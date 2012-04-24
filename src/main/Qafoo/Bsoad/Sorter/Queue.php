@@ -181,27 +181,11 @@ class Queue
 
         // Cut of read header
         $data = substr( $data, strlen( $match[0] ) + 1 );
-        $message->headers[] = trim( $match[0] );
+        $message->rawHeaders[] = rtrim( $match[0], "\r" );
 
-        // Read more headers
-        $contentLength    = false;
-        $transferEncoding = false;
-        while ( preg_match( '(\\A(?P<name>[A-Za-z-]+): +(?P<value>.*)\\r?$)muS', $data, $match ) )
-        {
-            $message->headers[] = trim( $match[0] );
-            $data = substr( $data, strlen( $match[0] ) + 1 );
-
-            if ( $match['name'] === 'Content-Length' )
-            {
-                $contentLength = (int) $match['value'];
-            }
-
-            if ( $match['name'] === 'Transfer-Encoding' )
-            {
-                $transferEncoding = $match['value'];
-            }
-        }
-        $data = substr( $data, 2 );
+        $data = $this->parseHeaders( $data, $message );
+        $transferEncoding = isset( $message->headers['Transfer-Encoding'] ) ? $message->headers['Transfer-Encoding'] : false;
+        $contentLength    = isset( $message->headers['Content-Length'] ) ? (int) $message->headers['Content-Length'] : false;
 
         // Read response body
         $body = '';
@@ -256,6 +240,30 @@ class Queue
         $message->body = $body;
         $this->messages[$port][] = $message;
     }
+
+    /**
+     * Parse headers from $data into $message
+     *
+     * Returns the $data buffer without the parsed contents
+     *
+     * @param string $data
+     * @param Struct\Message $message
+     * @return string
+     */
+    protected function parseHeaders( $data, Struct\Message $message )
+    {
+        // Read more headers
+        while ( preg_match( '(\\A(?P<name>[A-Za-z-]+): +(?P<value>.*)\\r?$)muS', $data, $match ) )
+        {
+            $message->rawHeaders[] = rtrim( $match[0], "\r" );
+            $message->headers[$match['name']] = $match['value'];
+            $data = substr( $data, strlen( $match[0] ) + 1 );
+        }
+        $data = substr( $data, 2 );
+
+        return $data;
+    }
+
 
     /**
      * Push complete HTTP interactions to output writer

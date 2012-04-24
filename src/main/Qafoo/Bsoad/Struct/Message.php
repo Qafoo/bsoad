@@ -24,7 +24,15 @@ abstract class Message extends Struct
     public $version;
 
     /**
-     * HTTP headers
+     * Raw, unparsed HTTP headers
+     *
+     * @var array
+     */
+    public $rawHeaders = array();
+
+    /**
+     * HTTP headers as a hash map. If multiple headers with the same name occur 
+     * this might cause lost headers. Check rawHeaders in this case.
      *
      * @var array
      */
