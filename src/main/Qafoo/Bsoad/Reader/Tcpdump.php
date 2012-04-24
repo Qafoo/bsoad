@@ -52,27 +52,29 @@ class Tcpdump extends Reader
     public function process( $stream )
     {
         socket_set_blocking( $stream, false );
+        $buffer = '';
         while ( !feof( $stream ) )
         {
-            $buffer = '';
-            // Skip unwanted Header
-            while ( $line = fgets( $stream ) )
+            while ( $data = fread( $stream, 8192 ) )
             {
-                $buffer .= $line;
+                $buffer .= $data;
+                usleep( 100 );
             }
 
-            if ( !$this->checked && $buffer )
+            if ( !$this->checked )
             {
                 $buffer = $this->checkFileHeader( $buffer );
             }
 
-            while( $this->checked && $buffer )
+            if ( $this->checked )
             {
                 $buffer = $this->analyzePacket( $buffer );
             }
 
-            usleep( 100 * 1000 );
+            usleep( 10 * 1000 );
         }
+
+        while ( $buffer = $this->analyzePacket( $buffer ) );
     }
 
     /**
@@ -86,6 +88,11 @@ class Tcpdump extends Reader
      */
     protected function checkFileHeader( $buffer )
     {
+        if ( strlen( $buffer ) < 24 )
+        {
+            return $buffer;
+        }
+
         $data = $this->read( 'Vblock/vmajor/vminor', $buffer, 8 );
         if( dechex( $data['block'] ) !== 'a1b2c3d4' )
         {
@@ -118,20 +125,26 @@ class Tcpdump extends Reader
      */
     protected function analyzePacket( $buffer )
     {
-        $packet = $this->read( 'Vsec/Vusec/Vlength/Vorig', $buffer, 16 );
+        if ( strlen( $buffer ) < 16 )
+        {
+            return $buffer;
+        }
+
+        $packetHeader = substr( $buffer, 0, 16 );
+        $packet = $this->read( 'Vsec/Vusec/Vlength/Vorig', $packetHeader, 16 );
         if ( $packet['length'] < 0 || $packet['orig'] < 0 )
         {
             throw new \RuntimeException( "Could not parse packet header" );
         }
 
-        $packetContent = substr( $buffer, 0, $packet['length'] );
-
-        if ( strlen( $packetContent ) < $packet['length'] )
+        $packetContent = substr( $buffer, 16, $packet['length'] );
+        if ( !strlen( $packetContent ) ||
+             ( strlen( $packetContent ) < $packet['length'] ) )
         {
             return $buffer;
         }
 
-        $buffer = substr( $buffer, $packet['length'] );
+        $buffer = substr( $buffer, 16 + $packet['length'] );
 
         $packet   = new Struct\Packet();
         $ethernet = $this->parseEthernetHeader( $packetContent, $packet );
