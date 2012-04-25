@@ -51,19 +51,24 @@ class Basic extends Sorter
      */
     public function push( Struct\Packet $packet )
     {
-        if ( $packet->tcpLength === 0 )
-        {
-            return;
-        }
-
         $queueName = $this->getQueueName( $packet );
-
         if ( !isset( $this->queues[$queueName] ) )
         {
             $this->queues[$queueName] = new Queue( $this->writer );
         }
+        echo $packet;
 
-        $this->queues[$queueName]->push( $packet );
+        if ( $packet->tcpLength > 0 )
+        {
+            $this->queues[$queueName]->push( $packet );
+        }
+
+        // Handle FIN
+        if ( $packet->tcpFlags & 1 )
+        {
+            $this->queues[$queueName]->close();
+            unset( $this->queues[$queueName] );
+        }
     }
 
     /**

@@ -83,6 +83,17 @@ class Queue
     }
 
     /**
+     * Force close connection
+     *
+     * @return void
+     */
+    public function close()
+    {
+        $this->parseNextHttpInteraction( true );
+        $this->pushHttpMessages( true );
+    }
+
+    /**
      * Check for finished packets
      *
      * @return void
@@ -130,13 +141,13 @@ class Queue
      *
      * @return void
      */
-    public function parseNextHttpInteraction()
+    public function parseNextHttpInteraction( $close = false )
     {
         foreach ( $this->data as $port => $data )
         {
             while ( strlen( ( $data ) ) )
             {
-                $result = $this->parseHttpMessage( $port, $data );
+                $result = $this->parseHttpMessage( $port, $data, $close );
                 if ( $result === false )
                 {
                     continue 2;
@@ -156,7 +167,7 @@ class Queue
      * @param string $data
      * @return void
      */
-    protected function parseHttpMessage( $port, $data )
+    protected function parseHttpMessage( $port, $data, $close )
     {
         if ( preg_match( '(\\A(?P<method>[A-Z]+) +(?P<path>[^\\s]+) +(?P<version>HTTP/\\d+\\.\\d+)\\r?$)mS', $data, $match ) )
         {
@@ -186,10 +197,33 @@ class Queue
         $data = $this->parseHeaders( $data, $message );
         $transferEncoding = isset( $message->headers['Transfer-Encoding'] ) ? $message->headers['Transfer-Encoding'] : false;
         $contentLength    = isset( $message->headers['Content-Length'] ) ? (int) $message->headers['Content-Length'] : false;
+        $contentType      = isset( $message->headers['Content-Type'] );
+
+        if ( strpos( $data, "\r\n" ) !== 0 )
+        {
+            // Headers have not been completed yet, postpone
+            return false;
+        }
+        $data = substr( $data, 2 );
 
         // Read response body
         $body = '';
-        if ( $transferEncoding === false )
+        if ( $contentType &&
+             ( $contentLength === false ) &&
+             ( $transferEncoding === false ) )
+        {
+            // The server set a content type, but did not provide a content
+            // length and did not answer in chunked transfer encoding. We
+            // cannot know what contents are transmitted until the connection
+            // has been closed.
+            if ( !$close )
+            {
+                return false;
+            }
+
+            $body = $data;
+        }
+        elseif ( $contentLength )
         {
             // HTTP 1.1 supports chunked transfer encoding, if the according
             // header is not set, just read the specified amount of bytes.
@@ -204,7 +238,7 @@ class Queue
             $body = substr( $data, 0, $bytesToRead );
             $data = substr( $data, $bytesToRead + 2 );
         }
-        else
+        elseif ( $transferEncoding )
         {
             // When Transfer-Encoding=chunked has been specified in the
             // response headers, read all chunks and sum them up to the body,
@@ -238,6 +272,8 @@ class Queue
         }
 
         $message->body = $body;
+
+        var_dump( $message );
         $this->messages[$port][] = $message;
     }
 
@@ -259,7 +295,6 @@ class Queue
             $message->headers[$match['name']] = $match['value'];
             $data = substr( $data, strlen( $match[0] ) + 1 );
         }
-        $data = substr( $data, 2 );
 
         return $data;
     }
@@ -270,7 +305,7 @@ class Queue
      *
      * @return void
      */
-    public function pushHttpMessages()
+    public function pushHttpMessages( $close = false )
     {
         $ports = array_keys( $this->messages );
         if ( count( $ports ) < 2 )
@@ -298,6 +333,17 @@ class Queue
         $request->curlCommand = $this->getCurlCommand( $request );
 
         $this->writer->write( new Struct\Interaction( $request, $response ) );
+
+        if ( $close &&
+             ( count( $this->messages[$ports[0]] ) ||
+               count( $this->messages[$ports[1]] ) ||
+               strlen( $this->data[$ports[0]] ) ||
+               strlen( $this->data[$ports[1]] ) ) )
+        {
+            throw new \RuntimeException(
+                "Connection closed, but unprocessed data in buffer."
+            );
+        }
     }
 
     /**
