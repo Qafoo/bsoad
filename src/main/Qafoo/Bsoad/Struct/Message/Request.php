@@ -31,6 +31,13 @@ class Request extends Message
     public $path;
 
     /**
+     * Curl command to reproduce the request
+     *
+     * @var string
+     */
+    public $curlCommand;
+
+    /**
      * COnstruct
      *
      * @param string $version

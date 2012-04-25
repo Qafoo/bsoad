@@ -295,7 +295,39 @@ class Queue
             unset( $tmp );
         }
 
+        $request->curlCommand = $this->getCurlCommand( $request );
+
         $this->writer->write( new Struct\Interaction( $request, $response ) );
+    }
+
+    /**
+     * Get curl command to simulate request
+     *
+     * @param Struct\Message\Request $request
+     * @return void
+     */
+    protected function getCurlCommand( Struct\Message\Request $request )
+    {
+        $command = 'curl -i -X ' . escapeshellarg( $request->method ) . ' ';
+        $command .= escapeshellarg( 'http://' . $request->headers['Host'] . $request->path );
+
+        foreach ( $request->rawHeaders as $header )
+        {
+            if ( ( strpos( $header, $request->method ) === 0 ) ||
+                 ( strpos( $header, 'Host' ) === 0 ) )
+            {
+                continue;
+            }
+
+            $command .= ' -H ' . escapeshellarg( $header );
+        }
+
+        if ( $request->body )
+        {
+            $command .= ' --data-binary ' . escapeshellarg( $request->body );
+        }
+
+        return $command;
     }
 }
 
