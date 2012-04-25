@@ -50,8 +50,6 @@ Use at own risk:
   - Some aspects of Ethernet, IP, TCP, and HTTP are ignored yet. If your stack
     uses those features this tool stack might break horribly.
 
-- BSOAD currently only supports IPv4
-
 
 ..
    Local Variables:
