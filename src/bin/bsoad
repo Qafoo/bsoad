@@ -8,7 +8,16 @@ require __DIR__ . '/../main/Qafoo/Bsoad/bootstrap.php';
 $reader = new Reader\Tcpdump(
     new Sorter\Basic(
         new Writer\Dispatcher( array(
-            new Writer\Json( STDOUT ),
+            new Writer\Filter(
+                new Writer\Json( STDOUT ),
+                array(
+                    'path' => array(
+                        '(\\.tpl$)',
+                        '(\\.(?:png|jpe?g)$)',
+                        '(\\.(?:js|css)$)',
+                    ),
+                )
+            ),
             new Writer\Debug( STDERR ),
         ) )
     )
