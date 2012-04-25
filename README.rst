@@ -29,6 +29,10 @@ may use ``tee`` for that, like::
 
     tcpdump -l -i lo 'tcp and port 80' -w - | tee /tmp/dump.pcap | bsoad | bdog
 
+You can then replay the dump using::
+
+    cat /tmp/dump.pcap | bsoad | bdog
+
 Bugs
 ====
 
