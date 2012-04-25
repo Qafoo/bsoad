@@ -150,7 +150,21 @@ class Tcpdump extends Reader
         $packet->time = (float) ( $packetData['sec'] . '.' . $packetData['usec'] );
 
         $ethernet = $this->parseEthernetHeader( $packetContent, $packet );
-        $ip       = $this->parseIpHeader( $packetContent, $packet );
+
+        switch ( $ethernet['type'] )
+        {
+            case 8:
+                $ip = $this->parseIPv4Header( $packetContent, $packet );
+                break;
+
+            case 56710:
+                $ip = $this->parseIPv6Header( $packetContent, $packet );
+                break;
+
+            default:
+                throw new \RuntimeException( sprintf( "Invalid network type: 0x%04x -- only IPv4 and IPv6 accepted.", $data['type'] ) );
+        }
+
         $tcp      = $this->parseTcpHeader( $packetContent, $packet );
 
         $this->sorter->push( $packet );
@@ -168,18 +182,11 @@ class Tcpdump extends Reader
      */
     protected function parseEthernetHeader( &$buffer, Struct\Packet $packet )
     {
-        $data = $this->read( 'h12src/h12dst/vtype', $buffer, 14 );
-
-        if ( $data['type'] !== 8 )
-        {
-            throw new \RuntimeException( sprintf( "Invalid network type: 0x%04x", $data['type'] ) );
-        }
-
-        return $data;
+        return $this->read( 'h12src/h12dst/vtype', $buffer, 14 );
     }
 
     /**
-     * Parse IP header
+     * Parse IPv4 header
      *
      * Return all info as an array, and embed important info in packet struct.
      *
@@ -187,7 +194,7 @@ class Tcpdump extends Reader
      * @param Struct\Packet $packet
      * @return array
      */
-    protected function parseIpHeader( &$buffer, Struct\Packet $packet )
+    protected function parseIPv4Header( &$buffer, Struct\Packet $packet )
     {
         $data = $this->read(
             'Cversion/' .
@@ -224,6 +231,43 @@ class Tcpdump extends Reader
 
         $packet->srcHost = long2ip( $data['src'] );
         $packet->dstHost = long2ip( $data['dst'] );
+
+        return $data;
+    }
+
+    /**
+     * Parse IPv6 header
+     *
+     * Return all info as an array, and embed important info in packet struct.
+     *
+     * @param string $buffer
+     * @param Struct\Packet $packet
+     * @return array
+     */
+    protected function parseIPv6Header( &$buffer, Struct\Packet $packet )
+    {
+        $data = $this->read(
+            'Nprotocol/' .
+            'nlength/' .
+            'Cnext/' .
+            'Climit/' .
+            'H32src/' .
+            'H32dst',
+            $buffer,
+            40
+        );
+
+        $data['class']    = $data['protocol'] & ( ( 1 << 20 ) - 1 );
+        $data['label']    = ( $data['protocol'] >> 20 ) & ( ( 1 << 8 ) - 1 );
+        $data['protocol'] = $data['protocol'] >> 28;
+
+        if ( $data['protocol'] !== 6 )
+        {
+            throw new \RuntimeException( "Not a TCP packet." );
+        }
+
+        $packet->srcHost = $data['src'];
+        $packet->dstHost = $data['dst'];
 
         return $data;
     }
