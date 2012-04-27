@@ -272,8 +272,6 @@ class Queue
         }
 
         $message->body = $body;
-
-        var_dump( $message );
         $this->messages[$port][] = $message;
     }
 
