@@ -59,6 +59,13 @@ class Packet extends Struct
     public $tcpSequence;
 
     /**
+     * TCP acknowledge number
+     *
+     * @var int
+     */
+    public $tcpAckNumber;
+
+    /**
      * TCP package length
      *
      * @var int

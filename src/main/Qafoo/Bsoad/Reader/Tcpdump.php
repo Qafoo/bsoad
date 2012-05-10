@@ -307,8 +307,9 @@ class Tcpdump extends Reader
         $packet->tcpSrcPort  = $data['src'];
         $packet->tcpDstPort  = $data['dst'];
 
-        $packet->tcpSequence = $data['seqNo'];
-        $packet->tcpFlags    = $data['flags'];
+        $packet->tcpAckNumber = $data['ackNo'];
+        $packet->tcpSequence  = $data['seqNo'];
+        $packet->tcpFlags     = $data['flags'];
 
         $data['options'] = array();
         for ( $i = 5; $i < $data['offset']; ++$i )
