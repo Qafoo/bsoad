@@ -22,7 +22,7 @@ class Dispatcher extends Writer
      *
      * @var Writer[]
      */
-    protected $writers;
+    protected $writers = array();
 
     /**
      * Construct from aggregated writers
