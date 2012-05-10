@@ -19,9 +19,37 @@ use Qafoo\Bsoad\Writer;
 class Queue
 {
     /**
-     * Packets in queue
+     * Queue has recieved the intial SYN packet
      *
-     * @var Struct\Packets[][]
+     * @var bool
+     */
+    protected $syn = false;
+
+    /**
+     * Initial SYN packet has been acknowledged
+     *
+     * @var bool
+     */
+    protected $synAck = false;
+
+    /**
+     * Final FIN packet has been received
+     *
+     * @var bool
+     */
+    protected $finished = false;
+
+    /**
+     * Current sequence for source and dst port
+     *
+     * @var int[]
+     */
+    protected $sequence = array();
+
+    /**
+     * Packets, which are accepted by their sequence number
+     *
+     * @var Struct\Packet[]
      */
     protected $packets = array();
 
@@ -33,53 +61,87 @@ class Queue
     protected $data = array();
 
     /**
-     * Parsed messages from input and output data streams
-     *
-     * @var Struct\Message[]
+     * SYN constant
      */
-    protected $messages = array();
+    const SYN = 2;
 
     /**
-     * Output writer
-     *
-     * @var Writer
+     * ACK constant
      */
-    protected $writer;
+    const ACK = 16;
 
     /**
-     * Construct from target writer
-     *
-     * @param Writer $writer
-     * @return void
+     * FIN constant
      */
-    public function __construct( Writer $writer )
-    {
-        $this->writer = $writer;
-    }
+    const FIN = 1;
 
     /**
-     * Push a packet to be sorted
+     * Check if queue already accepts the current packet
      *
      * @param Struct\Packet $packet
      * @return void
      */
-    public function push( Struct\Packet $packet )
+    public function accepts( Struct\Packet $packet )
     {
-        // Reset queue if a first package in the current queue is received
-        // again. This means a connection on the same source / target port
-        // combination has been reestablished after a FIN.
-        if ( ( isset( $this->packets[$packet->tcpSrcPort] ) ) &&
-             ( isset( $this->packets[$packet->tcpSrcPort][1] ) ) )
+        if ( $this->syn === false )
         {
-            $this->packets[$packet->tcpSrcPort] = array();
+            if ( !( $packet->tcpFlags & self::SYN ) )
+            {
+                return false;
+            }
+
+            $this->sequence[$packet->tcpSrcPort] = $packet->tcpSequence + 1;
+            $this->syn                           = true;
+            return true;
+        }
+
+        if ( $this->synAck === false )
+        {
+            if ( !( ( $packet->tcpFlags & self::SYN ) &&
+                    ( $packet->tcpFlags & self::ACK ) ) )
+            {
+                return false;
+            }
+
+            $this->sequence[$packet->tcpSrcPort] = $packet->tcpSequence + 1;
+            $this->synAck                        = true;
+            return true;
+        }
+
+        if ( $this->sequence[$packet->tcpSrcPort] > $packet->tcpSequence )
+        {
+            // Packet already processed, classic duplicate
+            return true;
+        }
+
+        if ( $this->sequence[$packet->tcpSrcPort] !== $packet->tcpSequence )
+        {
+            return false;
         }
 
         $this->packets[$packet->tcpSrcPort][$packet->tcpSequence] = $packet;
-        ksort( $this->packets[$packet->tcpSrcPort], SORT_NUMERIC );
+        $this->sequence[$packet->tcpSrcPort] = $packet->tcpSequence
+            + $packet->tcpLength
+            + ( (int) (bool) ( $packet->tcpFlags & self::FIN ) );
 
-        $this->checkFinished();
-        $this->parseNextHttpInteraction();
-        $this->pushHttpMessages();
+        if ( ( $packet->tcpFlags & self::ACK ) &&
+             ( isset( $this->packets[$packet->tcpDstPort] ) ) )
+        {
+            foreach ( $this->packets[$packet->tcpDstPort] as $sequence => $oldPacket )
+            {
+                if ( $sequence > $packet->tcpAckNumber )
+                {
+                    break;
+                }
+
+                $oldPacket->queued = true;
+            }
+        }
+
+        // @TODO: Factory correct parser
+        // @TODO: Process queued data and push into parser
+
+        return true;
     }
 
     /**
@@ -87,10 +149,9 @@ class Queue
      *
      * @return void
      */
-    public function close()
+    public function finish()
     {
-        $this->parseNextHttpInteraction( true );
-        $this->pushHttpMessages( true );
+        return $this->finished;
     }
 
     /**

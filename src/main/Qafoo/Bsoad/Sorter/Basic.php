@@ -26,22 +26,11 @@ class Basic extends Sorter
     protected $queues;
 
     /**
-     * Output writer
+     * Stacks for remaining packets
      *
-     * @var Writer
+     * @var array[]
      */
-    protected $writer;
-
-    /**
-     * Construct from target writer
-     *
-     * @param Writer $writer
-     * @return void
-     */
-    public function __construct( Writer $writer )
-    {
-        $this->writer = $writer;
-    }
+    protected $stacks;
 
     /**
      * Push a packet to be sorted
@@ -54,20 +43,39 @@ class Basic extends Sorter
         $queueName = $this->getQueueName( $packet );
         if ( !isset( $this->queues[$queueName] ) )
         {
-            $this->queues[$queueName] = new Queue( $this->writer );
-        }
-        echo $packet;
-
-        if ( $packet->tcpLength > 0 )
-        {
-            $this->queues[$queueName]->push( $packet );
+            // Construct new queue, if none exists yet
+            $this->queues[$queueName] = new Queue();
+            $this->stacks[$queueName] = array();
         }
 
-        // Handle FIN
-        if ( $packet->tcpFlags & 1 )
+        if ( !$this->queues[$queueName]->accepts( $packet ) )
         {
-            $this->queues[$queueName]->close();
+            // If the queue cannot handle the packet yet, we put in a stack
+            $this->stacks[$queueName][] = $packet;
+        }
+
+        // Try to handle all stacked packets, some may be available for
+        // processing
+        stackProcessing:
+        foreach ( $this->stacks[$queueName] as $nr => $packet )
+        {
+            if ( $this->queues[$queueName]->accepts( $packet ) )
+            {
+                unset( $this->stacks[$queueName][$nr] );
+                goto stackProcessing;
+            }
+        }
+
+        // Check if this queue is finished
+        if ( $this->queues[$queueName]->finish() )
+        {
+            if ( count( $this->stacks[$queueName] ) )
+            {
+                throw new \RuntimeException( "Queue reports to be finished, but there are still packets on the stack. This is kind of strange." );
+            }
+
             unset( $this->queues[$queueName] );
+            unset( $this->stacks[$queueName] );
         }
     }
 
