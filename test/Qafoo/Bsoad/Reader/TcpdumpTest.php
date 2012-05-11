@@ -23,6 +23,10 @@ class TcpdumpTest extends \PHPUnit_Framework_TestCase
     {
         return array(
             array(
+                $file = __DIR__ . '/_fixtures/tcpdump_stream.bin',
+                $file . '.php',
+            ),
+            array(
                 $file = __DIR__ . '/_fixtures/tcpdump_stream_http_1_0.bin',
                 $file . '.php',
             ),
@@ -34,16 +38,6 @@ class TcpdumpTest extends \PHPUnit_Framework_TestCase
      */
     public function testParseStream( $dump, $interactions )
     {
-        if ( file_exists( $interactions ) )
-        {
-            $interactions = include $interactions;
-        }
-        else
-        {
-            $interactions = array();
-            file_put_contents( $dump . '.dump.php', "<?php\n\nreturn " . var_export( $writer->getInteractions(), true ) . ";\n\n" );
-        }
-
         $reader = new Tcpdump(
             new Sorter\Basic(
                 new ParserFactory\Http(
@@ -55,6 +49,16 @@ class TcpdumpTest extends \PHPUnit_Framework_TestCase
         $reader->process(
             fopen( $dump, 'r' )
         );
+
+        if ( file_exists( $interactions ) )
+        {
+            $interactions = include $interactions;
+        }
+        else
+        {
+            $interactions = array();
+            file_put_contents( $dump . '.dump.php', "<?php\n\nreturn " . var_export( $writer->getInteractions(), true ) . ";\n\n" );
+        }
 
         $this->assertEquals(
             $interactions,
