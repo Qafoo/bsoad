@@ -21,19 +21,21 @@ set_exception_handler( function ( \Exception $exception )
 
 $reader = new Reader\Tcpdump(
     new Sorter\Basic(
-        new Writer\Dispatcher( array(
-            new Writer\Filter(
-                new Writer\Json( STDOUT ),
-                array(
-                    'path' => array(
-                        '(\\.tpl$)',
-                        '(\\.(?:png|jpe?g)$)',
-                        '(\\.(?:js|css)$)',
-                    ),
-                )
-            ),
-            new Writer\Debug( STDERR ),
-        ) )
+        new ParserFactory\Http(
+            new Writer\Dispatcher( array(
+                new Writer\Filter(
+                    new Writer\Json( STDOUT ),
+                    array(
+                        'path' => array(
+                            '(\\.tpl$)',
+                            '(\\.(?:png|jpe?g)$)',
+                            '(\\.(?:js|css)$)',
+                        ),
+                    )
+                ),
+                new Writer\Debug( STDERR ),
+            ) )
+        )
     )
 );
 
