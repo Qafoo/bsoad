@@ -38,7 +38,7 @@ class Response extends Message
      * @param string $message
      * @return void
      */
-    public function __construct( $version, $code, $message )
+    public function __construct( $version = null, $code = null, $message = null )
     {
         $this->version = $version;
         $this->code    = $code;

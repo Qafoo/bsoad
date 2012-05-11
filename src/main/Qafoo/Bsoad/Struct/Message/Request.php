@@ -45,7 +45,7 @@ class Request extends Message
      * @param string $path
      * @return void
      */
-    public function __construct( $version, $method, $path )
+    public function __construct( $version = null, $method = null, $path = null )
     {
         $this->version = $version;
         $this->method  = $method;

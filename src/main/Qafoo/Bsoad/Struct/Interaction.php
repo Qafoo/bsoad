@@ -37,7 +37,7 @@ class Interaction extends Struct
      * @param Message\Response $response
      * @return void
      */
-    public function __construct( Message\Request $request, Message\Response $response )
+    public function __construct( Message\Request $request = null, Message\Response $response = null )
     {
         $this->request  = $request;
         $this->response = $response;
