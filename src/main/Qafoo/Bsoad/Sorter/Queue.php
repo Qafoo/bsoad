@@ -27,6 +27,13 @@ class Queue
     protected $parserFactory;
 
     /**
+     * Parser
+     *
+     * @var Parser
+     */
+    protected $parser;
+
+    /**
      * Queue has recieved the intial SYN packet
      *
      * @var bool
@@ -45,7 +52,7 @@ class Queue
      *
      * @var bool
      */
-    protected $finished = false;
+    protected $finished = array();
 
     /**
      * Current sequence for source and dst port
@@ -69,21 +76,6 @@ class Queue
     protected $data = array();
 
     /**
-     * SYN constant
-     */
-    const SYN = 2;
-
-    /**
-     * ACK constant
-     */
-    const ACK = 16;
-
-    /**
-     * FIN constant
-     */
-    const FIN = 1;
-
-    /**
      * COnstruct from parser factory
      *
      * @param ParserFactory $parserFactory
@@ -102,29 +94,14 @@ class Queue
      */
     public function accepts( Struct\Packet $packet )
     {
-        if ( $this->syn === false )
+        if ( !$this->isSyned( $packet ) )
         {
-            if ( !( $packet->tcpFlags & self::SYN ) )
-            {
-                return false;
-            }
-
-            $this->sequence[$packet->tcpSrcPort] = $packet->tcpSequence + 1;
-            $this->syn                           = true;
-            return true;
+            return false;
         }
 
-        if ( $this->synAck === false )
+        if ( !$this->isSynAcked( $packet ) )
         {
-            if ( !( ( $packet->tcpFlags & self::SYN ) &&
-                    ( $packet->tcpFlags & self::ACK ) ) )
-            {
-                return false;
-            }
-
-            $this->sequence[$packet->tcpSrcPort] = $packet->tcpSequence + 1;
-            $this->synAck                        = true;
-            return true;
+            return false;
         }
 
         if ( $this->sequence[$packet->tcpSrcPort] > $packet->tcpSequence )
@@ -138,29 +115,133 @@ class Queue
             return false;
         }
 
+        $this->processAckPacket( $packet );
+
         $this->packets[$packet->tcpSrcPort][$packet->tcpSequence] = $packet;
         $this->sequence[$packet->tcpSrcPort] = $packet->tcpSequence
             + $packet->tcpLength
-            + ( (int) (bool) ( $packet->tcpFlags & self::FIN ) );
+            + ( (int) (bool) ( $packet->tcpFlags & Struct\Packet::FIN ) );
 
-        if ( ( $packet->tcpFlags & self::ACK ) &&
+        $this->processDataPackets();
+
+        return true;
+    }
+
+    /**
+     * Check if connection has been established, or the current package
+     * establishes the connection.
+     *
+     * @param Struct\Packet $packet
+     * @return bool
+     */
+    protected function isSyned( Struct\Packet $packet )
+    {
+        if ( $this->syn === true )
+        {
+            return true;
+        }
+
+        if ( !( $packet->tcpFlags & Struct\Packet::SYN ) )
+        {
+            return false;
+        }
+
+        $this->sequence[$packet->tcpSrcPort] = $packet->tcpSequence + 1;
+        $this->finished[$packet->tcpSrcPort] = false;
+        $this->finished[$packet->tcpDstPort] = false;
+        $this->syn                           = true;
+        return true;
+    }
+
+    /**
+     * Check if connection has been fully established, or the current package
+     * establishes the connection.
+     *
+     * @param Struct\Packet $packet
+     * @return bool
+     */
+    protected function isSynAcked( Struct\Packet $packet )
+    {
+        if ( $this->synAck === true )
+        {
+            return true;
+        }
+
+        if ( !( ( $packet->tcpFlags & Struct\Packet::SYN ) &&
+                ( $packet->tcpFlags & Struct\Packet::ACK ) ) )
+        {
+            return false;
+        }
+
+        $this->sequence[$packet->tcpSrcPort] = $packet->tcpSequence + 1;
+        $this->synAck                        = true;
+        return true;
+    }
+
+    /**
+     * Process ACK packet
+     *
+     * ACKs all packets depending on the ack number in the received ACK packet.
+     *
+     * @param Struct\Packet $packet
+     * @return void
+     */
+    protected function processAckPacket( Struct\Packet $packet )
+    {
+        if ( ( $packet->tcpFlags & Struct\Packet::ACK ) &&
              ( isset( $this->packets[$packet->tcpDstPort] ) ) )
         {
             foreach ( $this->packets[$packet->tcpDstPort] as $sequence => $oldPacket )
             {
                 if ( $sequence > $packet->tcpAckNumber )
                 {
+                    return;
+                }
+
+                $oldPacket->acked = true;
+            }
+        }
+    }
+
+    /**
+     * Process all received data packets
+     *
+     * Passes on the data packets to the parser, which then may handle the
+     * contents of the TCP communication.
+     *
+     * @return void
+     */
+    protected function processDataPackets()
+    {
+        foreach ( $this->packets as $port => $packets )
+        {
+            foreach ( $packets as $sequence => $packet )
+            {
+                if ( !$packet->acked )
+                {
                     break;
                 }
 
-                $oldPacket->queued = true;
+                if ( $packet->tcpFlags & Struct\Packet::FIN )
+                {
+                    $this->finished[$port] = true;
+                }
+
+                if ( $packet->tcpLength <= 0 )
+                {
+                    unset( $this->packets[$port][$sequence] );
+                    continue;
+                }
+
+                if ( !$this->parser )
+                {
+                    $this->parser = $this->parserFactory->create( $packet );
+                }
+
+                $this->parser->push( $packet );
+                unset( $this->packets[$port][$sequence] );
             }
         }
-
-        // @TODO: Factory correct parser
-        // @TODO: Process queued data and push into parser
-
-        return true;
     }
 
     /**
@@ -170,7 +251,24 @@ class Queue
      */
     public function finish()
     {
-        return $this->finished;
+        if ( array_reduce(
+                $this->finished,
+                function ( $last, $current )
+                {
+                    return $last && $current;
+                },
+                true
+            ) )
+        {
+            if ( $this->parser )
+            {
+                $this->parser->finish();
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }
 
