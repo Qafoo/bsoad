@@ -30,6 +30,10 @@ class TcpdumpTest extends \PHPUnit_Framework_TestCase
                 $file = __DIR__ . '/_fixtures/tcpdump_stream_http_1_0.bin',
                 $file . '.php',
             ),
+            array(
+                $file = __DIR__ . '/_fixtures/tcpdump_stream_ipv6.bin',
+                $file . '.php',
+            ),
         );
     }
 
