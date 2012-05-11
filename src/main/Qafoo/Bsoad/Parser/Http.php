@@ -43,6 +43,10 @@ class Http extends Parser
      */
     public function push( Struct\Packet $packet )
     {
+        if ( !isset( $this->data[$packet->tcpSrcPort] ) )
+        {
+            $this->data[$packet->tcpSrcPort] = '';
+        }
         $this->data[$packet->tcpSrcPort] .= $packet->data;
 
         $this->parseNextHttpInteraction();
@@ -177,21 +181,23 @@ class Http extends Parser
                 }
 
                 // Get bytes to read, with option appending comment
-                if ( preg_match( '(\\A(?P<bytes>[0-9a-f]+)(?:;.*)?\\r?$)mS', $data, $match ) )
+                if ( !preg_match( '(\\A(?P<bytes>[0-9a-fA-F]+)(?:;.*)?\\r?$)mS', $data, $match ) )
                 {
-                    $bytesToRead = hexdec( $match['bytes'] );
-                    $data = substr( $data, strlen( $match[0] ) + 1 );
-
-                    // Read body only as specified by chunk sizes, everything else
-                    // are just footnotes, which are not relevant for us.
-                    $bytesLeft = $bytesToRead;
-                    if ( strlen( $data ) < $bytesLeft )
-                    {
-                        return false;
-                    }
-                    $body .= substr( $data, 0, $bytesLeft );
-                    $data = substr( $data, $bytesLeft + 2 );
+                    return false;
                 }
+
+                $bytesToRead = hexdec( $match['bytes'] );
+                $data = substr( $data, strlen( $match[0] ) + 1 );
+
+                // Read body only as specified by chunk sizes, everything else
+                // are just footnotes, which are not relevant for us.
+                $bytesLeft = $bytesToRead;
+                if ( strlen( $data ) < $bytesLeft )
+                {
+                    return false;
+                }
+                $body .= substr( $data, 0, $bytesLeft );
+                $data = substr( $data, $bytesLeft + 2 );
             } while ( $bytesToRead > 0 );
         }
 
