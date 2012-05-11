@@ -131,7 +131,7 @@ class Packet extends Struct
     public function __toString()
     {
         $time = new \DateTime( '@' . floor( $this->time ) );
-        return sprintf( "[%s] %s:% 5d -> %s:% 5d [%s] (% 10d +% 5d) %06s %s (%d byte)\n",
+        return sprintf( "[%s] %s:% 5d -> %s:% 5d [%s] (% 10d +% 5d) %06s %s(%d byte)\n",
             $time->format( 'r' ),
             $this->srcHost,
             $this->tcpSrcPort,
