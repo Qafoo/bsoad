@@ -10,6 +10,7 @@ namespace Qafoo\Bsoad\Sorter;
 use Qafoo\Bsoad\Sorter;
 use Qafoo\Bsoad\Struct;
 use Qafoo\Bsoad\Writer;
+use Qafoo\Bsoad\ParserFactory;
 
 /**
  * Basic packet sorter
@@ -18,6 +19,13 @@ use Qafoo\Bsoad\Writer;
  */
 class Basic extends Sorter
 {
+    /**
+     * Parser factory
+     *
+     * @var ParserFactory
+     */
+    protected $parserFactory;
+
     /**
      * Sorting queues
      *
@@ -33,6 +41,17 @@ class Basic extends Sorter
     protected $stacks;
 
     /**
+     * COnstruct from parser factory
+     *
+     * @param ParserFactory $parserFactory
+     * @return void
+     */
+    public function __construct( ParserFactory $parserFactory )
+    {
+        $this->parserFactory = $parserFactory;
+    }
+
+    /**
      * Push a packet to be sorted
      *
      * @param Struct\Packet $packet
@@ -44,7 +63,7 @@ class Basic extends Sorter
         if ( !isset( $this->queues[$queueName] ) )
         {
             // Construct new queue, if none exists yet
-            $this->queues[$queueName] = new Queue();
+            $this->queues[$queueName] = new Queue( $this->parserFactory );
             $this->stacks[$queueName] = array();
         }
 
