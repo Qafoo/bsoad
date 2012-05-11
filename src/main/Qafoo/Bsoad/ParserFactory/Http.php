@@ -29,7 +29,10 @@ class Http extends ParserFactory
      */
     public function create( Struct\Packet $packet )
     {
-        return new Parser\Http( $this->writer );
+        return new Parser\Http(
+            $this->writer,
+            new Parser\Http\CommandGenerator\Curl()
+        );
     }
 }
 

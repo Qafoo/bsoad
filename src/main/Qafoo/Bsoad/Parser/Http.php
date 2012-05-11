@@ -34,6 +34,26 @@ class Http extends Parser
     protected $messages = array();
 
     /**
+     * Command generator
+     *
+     * @var Http\CommandGenerator
+     */
+    protected $commandGenerator;
+
+    /**
+     * COnstruct from command generator
+     *
+     * @param Writer $writer
+     * @param Http\CommandGenerator $commandGenerator
+     * @return void
+     */
+    public function __construct( Writer $writer, Http\CommandGenerator $commandGenerator )
+    {
+        parent::__construct( $writer );
+        $this->commandGenerator = $commandGenerator;
+    }
+
+    /**
      * Push a packet to be sorted
      *
      * Packets we receive here, should be ACK'ed and pushed in correct order.
@@ -267,7 +287,7 @@ class Http extends Parser
             unset( $tmp );
         }
 
-        $request->curlCommand = $this->getCurlCommand( $request );
+        $request->curlCommand = $this->commandGenerator->getCommand( $request );
 
         $this->writer->write( new Struct\Interaction( $request, $response ) );
 
@@ -281,36 +301,6 @@ class Http extends Parser
                 "Connection closed, but unprocessed data in buffer."
             );
         }
-    }
-
-    /**
-     * Get curl command to simulate request
-     *
-     * @param Struct\Message\Request $request
-     * @return void
-     */
-    protected function getCurlCommand( Struct\Message\Request $request )
-    {
-        $command = 'curl -i -X ' . escapeshellarg( $request->method ) . ' ';
-        $command .= escapeshellarg( 'http://' . $request->headers['Host'] . $request->path );
-
-        foreach ( $request->rawHeaders as $header )
-        {
-            if ( ( strpos( $header, $request->method ) === 0 ) ||
-                 ( strpos( $header, 'Host' ) === 0 ) )
-            {
-                continue;
-            }
-
-            $command .= ' -H ' . escapeshellarg( $header );
-        }
-
-        if ( $request->body )
-        {
-            $command .= ' --data-binary ' . escapeshellarg( $request->body );
-        }
-
-        return $command;
     }
 }
 
