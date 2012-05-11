@@ -91,7 +91,37 @@ class Packet extends Struct
      *
      * @var mixed
      */
-    public $queued = false;
+    public $acked = false;
+
+    /**
+     * FIN constant
+     */
+    const FIN = 1;
+
+    /**
+     * SYN constant
+     */
+    const SYN = 2;
+
+    /**
+     * RST constant
+     */
+    const RST = 4;
+
+    /**
+     * PSH constant
+     */
+    const PSH = 8;
+
+    /**
+     * ACK constant
+     */
+    const ACK = 16;
+
+    /**
+     * URG constant
+     */
+    const URG = 32;
 
     /**
      * Get string representation of packet
@@ -101,15 +131,22 @@ class Packet extends Struct
     public function __toString()
     {
         $time = new \DateTime( '@' . floor( $this->time ) );
-        return sprintf( "[%s] %s:% 5d -> %s:% 5d (% 10d +% 5d) %06s (%d byte)\n",
+        return sprintf( "[%s] %s:% 5d -> %s:% 5d [%s] (% 10d +% 5d) %06s %s (%d byte)\n",
             $time->format( 'r' ),
             $this->srcHost,
             $this->tcpSrcPort,
             $this->dstHost,
             $this->tcpDstPort,
+            $this->acked ? 'x' : ' ',
             $this->tcpSequence,
             $this->tcpLength,
             decbin( $this->tcpFlags ),
+            ( $this->tcpFlags & self::URG ? 'URG ' : '' ) .
+            ( $this->tcpFlags & self::ACK ? 'ACK ' : '' ) .
+            ( $this->tcpFlags & self::PSH ? 'PSH ' : '' ) .
+            ( $this->tcpFlags & self::RST ? 'RST ' : '' ) .
+            ( $this->tcpFlags & self::SYN ? 'SYN ' : '' ) .
+            ( $this->tcpFlags & self::FIN ? 'FIN ' : '' ),
             $this->tcpLength
         );
     }
