@@ -74,7 +74,18 @@ class Tcpdump extends Reader
             usleep( 10 * 1000 );
         }
 
-        while ( $buffer = $this->analyzePacket( $buffer ) );
+        // Would be trivial to format in a readable way, but why? :)
+        //
+        // If you do not understand such loops, you really should not mess with 
+        // this class code.
+        while ( ( $lastBufferSize = strlen( $buffer ) ) &&
+                ( $buffer = $this->analyzePacket( $buffer ) ) &&
+                ( strlen( $buffer ) < $lastBufferSize ) );
+
+        if ( $buffer )
+        {
+            throw new \RuntimeException( "Remaining unparsable contents in buffer:" . PHP_EOL . $this->printBuffer( $buffer ) );
+        }
     }
 
     /**
@@ -227,7 +238,7 @@ class Tcpdump extends Reader
             throw new \RuntimeException( "@TODO: Reading options not yet supported." );
         }
 
-        // @TODO: Calculate checksum?
+        // @TODO: Calculate / verify checksum?
 
         $packet->srcHost = long2ip( $data['src'] );
         $packet->dstHost = long2ip( $data['dst'] );
@@ -351,21 +362,27 @@ class Tcpdump extends Reader
     }
 
     /**
-     * Debugging helper: Print buffer
+     * Debugging helper: Return printable buffer
      *
      * @param string $buffer
      * @param int $lines
-     * @return void
+     * @return string
      * @private
      */
     protected function printBuffer( $buffer, $lines = 10 )
     {
+        $return = '';
         $string = substr( $buffer, 0, $lines * 4 );
         for ( $i = 0; $i < strlen( $string ); ++$i )
         {
-            printf( "%08s %02x ", decbin( ord( $string[$i] ) ), ord( $string[$i] ) );
-            if ( ( ( $i + 1 ) % 4 ) === 0 ) echo PHP_EOL;
+            $return .= sprintf( "%08s %02x ", decbin( ord( $string[$i] ) ), ord( $string[$i] ) );
+            if ( ( ( $i + 1 ) % 4 ) === 0 )
+            {
+                $return .= PHP_EOL;
+            }
         }
+
+        return $return;
     }
 }
 
