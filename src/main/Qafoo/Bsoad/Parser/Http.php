@@ -136,7 +136,16 @@ class Http extends Parser
 
         // Read response body
         $body = '';
-        if ( $contentType &&
+        if ( ( $message instanceof Struct\Message\Response ) &&
+             ( $message->code >= 300 ) &&
+             ( $message->code < 400 ) &&
+             ( $contentLength === false ) &&
+             ( $transferEncoding === false ) )
+        {
+            // This message seems not to contain a body
+            $body = '';
+        }
+        elseif ( $contentType &&
              ( $contentLength === false ) &&
              ( $transferEncoding === false ) )
         {
