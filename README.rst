@@ -12,7 +12,10 @@ Usage
 
 To use this thingy on localhost, do something like::
 
-    tcpdump -l -i lo 'tcp and port 80' -w - | bsoad | bsoad-bdog
+    tcpdump -l -i lo 'tcp and (port 80 or port 8983)' -w - | bsoad | bsoad-bdog
+
+This will dump all HTTP and Solr interactions using their respective default
+ports.
 
 Important is the ``-w -`` flag for TCPDump so that the raw binary output is
 written to stdout.
