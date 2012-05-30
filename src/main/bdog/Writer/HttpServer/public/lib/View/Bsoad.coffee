@@ -7,7 +7,6 @@ define ( require, module, exports ) ->
             @content = jQuery "#content"
             @hosts   = ["client"]
             @modalId = 1
-            alert( "FOO" )
 
         # Handle the segment by simply appending it to the <pre> tags content
         handleSegment: ( segment ) ->
