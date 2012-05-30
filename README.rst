@@ -12,7 +12,7 @@ Usage
 
 To use this thingy on localhost, do something like::
 
-    tcpdump -l -i lo 'tcp and port 80' -w - | bsoad | bdog
+    tcpdump -l -i lo 'tcp and port 80' -w - | bsoad | bsoad-bdog
 
 Important is the ``-w -`` flag for TCPDump so that the raw binary output is
 written to stdout.
@@ -27,11 +27,11 @@ If some errors are happening record the stream originating from tcpdump and
 store it. This enables you / me to debug bsoad with the same input data. You
 may use ``tee`` for that, like::
 
-    tcpdump -l -i lo 'tcp and port 80' -w - | tee /tmp/dump.pcap | bsoad | bdog
+    tcpdump -l -i lo 'tcp and port 80' -w - | tee /tmp/dump.pcap | bsoad | bsoad-bdog
 
 You can then replay the dump using::
 
-    cat /tmp/dump.pcap | bsoad | bdog
+    cat /tmp/dump.pcap | bsoad | bsoad-bdog
 
 Installation
 ============
@@ -50,17 +50,12 @@ Bugs
 
 Use at own risk:
 
-- HTTP 1.0 handling does not work correctly if the server does not provide a
-  content length
+- There might still be errors left in TCP stream handling, if you happen to
+  find one, please provide me with a stream dump. They might be interesting to
+  reproduce, though.
 
-- There will be bugs in the TCP stream handling. Handling pcket fragmentation
-  works, but:
-
-  - This has only be tested on localhost without packet loss. SYN/ACK/FIN
-    packets are mostly ignored yet. This may lead to hard-to-debug errors.
-
-  - Some aspects of Ethernet, IP, TCP, and HTTP are ignored yet. If your stack
-    uses those features this tool stack might break horribly.
+- There might also be problems in the HTTP parser. I am not sure about some of
+  the assumptions in there. Be kind.
 
 
 ..
