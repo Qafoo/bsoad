@@ -33,6 +33,18 @@ You can then replay the dump using::
 
     cat /tmp/dump.pcap | bsoad | bdog
 
+Installation
+============
+
+This project depends on bdog__ -- to install it execute these commands::
+
+    composer.phar install
+    cd src/library/qafoo/bdog
+    npm install
+    git submodule init
+    git submodule update
+
+
 Bugs
 ====
 

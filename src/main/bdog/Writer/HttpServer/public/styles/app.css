@@ -1,0 +1,90 @@
+body {
+    background-color: #333333;
+    color: #ffffff;
+}
+
+table {
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 5px;
+}
+
+td.request,
+td.response {
+    background-color: #ddd;
+    color: #000000;
+    
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    -khtml-border-radius: 3px;
+    border-radius: 3px;
+
+    padding: 2px 5px;
+
+    overflow: hidden;
+}
+
+.request .btn-group {
+    float: right;
+    border-spacing: 0px;
+    margin-top: 2px;
+}
+
+.request button {
+    width: 24px;
+}
+
+.request .modal {
+    display: none;
+}
+
+.table tbody tr:hover td {
+    background-color: #444444;
+}
+
+.table tbody tr:hover td.request,
+.table tbody tr:hover td.response {
+    background-color: #ffffff;
+}
+
+.table tbody td {
+    border-top: none;
+}
+
+td .alert {
+    margin-bottom: 2px;
+    padding: 2px 5px;
+}
+
+.method,
+.code,
+.headers .name{
+    font-weight: bold;
+}
+
+.headers .name{
+    display: inline-block;
+    min-width: 30%;
+}
+
+td .info {
+    display: none;
+}
+
+ul.headers {
+    list-style-type: none;
+    margin: 0px;
+
+    font-size: 85%;
+}
+
+ul.headers li {
+    padding: 0px;
+    margin: 0px;
+}
+
+.body pre {
+    overflow: scroll;
+    max-height: 100px;
+}
+
