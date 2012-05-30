@@ -1,0 +1,5 @@
+#!/bin/bash
+
+BASE="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../.."
+$BASE/src/library/qafoo/bdog/bin/bdog --include $BASE/src/main/bdog/ --profile Bsoad
+
