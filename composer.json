@@ -1,0 +1,22 @@
+{
+    "name":         "BSOAD",
+    "description":  "Browser SOA Debugger",
+    "repositories": [ {
+        "type":    "package",
+        "package": {
+            "name":    "qafoo/bdog",
+            "version": "0.1",
+            "source": {
+                "url": "https://github.com/Qafoo/bdog/",
+                "type": "git",
+                "reference": "origin/master"
+            }
+        }
+    } ],
+    "require":      {
+        "qafoo/bdog": ">=0.1"
+    },
+    "config":       {
+        "vendor-dir": "src/library"
+    }
+}
