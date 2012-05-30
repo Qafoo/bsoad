@@ -2,3 +2,4 @@ build
 .pear
 .npm
 .abc
+src/library
