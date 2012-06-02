@@ -5,7 +5,7 @@ namespace Qafoo\Bsoad;
 
 require __DIR__ . '/../main/Qafoo/Bsoad/bootstrap.php';
 
-$errorHandler = new ErrorHandler( STDERR );
+$errorHandler = new ErrorHandler( STDERR, E_ERROR | E_USER_ERROR | E_PARSE );
 set_error_handler( array( $errorHandler, 'handleError' ) );
 set_exception_handler( array( $errorHandler, 'handleException' ) );
 
