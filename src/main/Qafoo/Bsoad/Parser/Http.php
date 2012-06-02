@@ -142,7 +142,7 @@ class Http extends Parser
         }
         else
         {
-            trigger_error( E_ERROR, "Invalid HTTP message: " . substr( $data, 0, 100 ) );
+            trigger_error( "Invalid HTTP message: " . substr( $data, 0, 100 ), E_USER_ERROR );
         }
 
         // Cut of read header

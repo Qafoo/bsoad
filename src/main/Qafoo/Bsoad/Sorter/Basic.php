@@ -90,7 +90,7 @@ class Basic extends Sorter
         {
             if ( count( $this->stacks[$queueName] ) )
             {
-                trigger_error( E_WARNING, "Queue reports to be finished, but there are still packets on the stack. This is kind of strange." );
+                trigger_error( "Queue $queueName reports to be finished, but there are still packets on the stack. This is kind of strange.", E_USER_WARNING );
             }
 
             unset( $this->queues[$queueName] );
