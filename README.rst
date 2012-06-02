@@ -55,12 +55,11 @@ Design
 TCPDump returns the raw TCP packets, which are then parsed and processed by
 BSOAD.
 
-.. note::
-    I first tried to use tools like TShark (Wireshark CLI), but they mess up
-    the HTTP traffic, omit important processing information and do not manage
-    to process all HTTP interactions. So I went this "hard" way.
+.. note:: I first tried to use tools like TShark (Wireshark CLI), but they mess
+    up the HTTP traffic, omit important processing information and do not
+    manage to process all HTTP interactions. So I went this "hard" way.
 
-BSOAD the parses the Ethernet frames, which contain IP headers (IPv4 and IPv6
+BSOAD then parses the Ethernet frames, which contain IP headers (IPv4 and IPv6
 are supported), which then contain the TCP headers, which contain the actual
 data.
 
