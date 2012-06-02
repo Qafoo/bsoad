@@ -73,7 +73,7 @@ class ErrorHandler
         fwrite(
             $this->stream,
             sprintf(
-                "\033[1;37m][%s] %s: %s in %s +%d\033[0m]" . PHP_EOL,
+                "\033[1;31m[%s] %s: %s in %s +%d\033[0m" . PHP_EOL,
                 date( 'r' ),
                 $this->errorType[$errno],
                 $errstr,
