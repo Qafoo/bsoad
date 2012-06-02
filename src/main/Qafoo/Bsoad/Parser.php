@@ -17,24 +17,6 @@ namespace Qafoo\Bsoad;
 abstract class Parser
 {
     /**
-     * Output writer
-     *
-     * @var Writer
-     */
-    protected $writer;
-
-    /**
-     * Construct from target writer
-     *
-     * @param Writer $writer
-     * @return void
-     */
-    public function __construct( Writer $writer )
-    {
-        $this->writer = $writer;
-    }
-
-    /**
      * Push a packet to be sorted
      *
      * Packets we receive here, should be ACK'ed and pushed in correct order.

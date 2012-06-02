@@ -20,6 +20,13 @@ use Qafoo\Bsoad\Writer;
 class Http extends Parser
 {
     /**
+     * Output writer
+     *
+     * @var Writer
+     */
+    protected $writer;
+
+    /**
      * Aggregated data from packets
      *
      * @var string[]
@@ -49,7 +56,7 @@ class Http extends Parser
      */
     public function __construct( Writer $writer, Http\CommandGenerator $commandGenerator )
     {
-        parent::__construct( $writer );
+        $this->writer           = $writer;
         $this->commandGenerator = $commandGenerator;
     }
 
