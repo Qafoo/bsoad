@@ -30,7 +30,7 @@ DefaultProfile =
     configuration:
         site: 'bsoad.html'
         views: [
-            'bsoad'
+            'Bsoad'
         ]
 
 module.exports = DefaultProfile
