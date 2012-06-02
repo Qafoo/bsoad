@@ -5,19 +5,9 @@ namespace Qafoo\Bsoad;
 
 require __DIR__ . '/../main/Qafoo/Bsoad/bootstrap.php';
 
-set_error_handler( function ( $type, $message, $file, $line )
-    {
-        if ( error_reporting() === 0 ) return false;
-        throw new \Exception( $message );
-    }
-);
-
-set_exception_handler( function ( \Exception $exception )
-    {
-        fwrite( STDERR, $exception . PHP_EOL );
-        exit( 1 );
-    }
-);
+$errorHandler = new ErrorHandler( STDERR );
+set_error_handler( array( $errorHandler, 'handleError' ) );
+set_exception_handler( array( $errorHandler, 'handleException' ) );
 
 $reader = new Reader\Tcpdump(
     new Sorter\Basic(
