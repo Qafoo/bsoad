@@ -84,7 +84,7 @@ class Tcpdump extends Reader
 
         if ( $buffer )
         {
-            throw new \RuntimeException( "Remaining unparsable contents in buffer:" . PHP_EOL . $this->printBuffer( $buffer ) );
+            trigger_error( E_WARNING, "Remaining unparsable contents in buffer:" . PHP_EOL . $this->printBuffer( $buffer ) );
         }
     }
 
@@ -107,18 +107,18 @@ class Tcpdump extends Reader
         $data = $this->read( 'Vblock/vmajor/vminor', $buffer, 8 );
         if( dechex( $data['block'] ) !== 'a1b2c3d4' )
         {
-            throw new \RuntimeException( "Input file format is invalid." );
+            trigger_error( E_PARSE, "Input file format is invalid." );
         }
 
         if ( $data['major'] !== 2 )
         {
-            throw new \RuntimeException( "Only input format version 2 is accepted." );
+            trigger_error( E_ERROR, "Only input format version 2 is accepted." );
         }
 
         $data = $this->read( 'Vzone/Vsigfig/Vlength/Vnetwork', $buffer, 16 );
         if ( $data['network'] !== 1 )
         {
-            throw new \RuntimeException( "Invalid network type." );
+            trigger_error( E_ERROR, "Invalid network type." );
         }
 
         $this->checked = true;
@@ -145,7 +145,7 @@ class Tcpdump extends Reader
         $packetData   = $this->read( 'Vsec/Vusec/Vlength/Vorig', $packetHeader, 16 );
         if ( $packetData['length'] < 0 || $packetData['orig'] < 0 )
         {
-            throw new \RuntimeException( "Could not parse packet header" );
+            trigger_error( E_ERROR, "Could not parse packet header" );
         }
 
         $packetContent = substr( $buffer, 16, $packetData['length'] );
@@ -173,7 +173,7 @@ class Tcpdump extends Reader
                 break;
 
             default:
-                throw new \RuntimeException( sprintf( "Invalid network type: 0x%04x -- only IPv4 and IPv6 accepted.", $data['type'] ) );
+                trigger_error( E_ERROR, sprintf( "Invalid network type: 0x%04x -- only IPv4 and IPv6 accepted.", $data['type'] ) );
         }
 
         $tcp      = $this->parseTcpHeader( $packetContent, $packet );
@@ -230,12 +230,12 @@ class Tcpdump extends Reader
 
         if ( $data['protocol'] !== 6 )
         {
-            throw new \RuntimeException( "Not a TCP packet." );
+            trigger_error( E_ERROR, "Not a TCP packet." );
         }
 
         if ( $data['ihl'] > 5 )
         {
-            throw new \RuntimeException( "@TODO: Reading options not yet supported." );
+            trigger_error( E_ERROR, "@TODO: Reading options not yet supported." );
         }
 
         // @TODO: Calculate / verify checksum?
@@ -274,7 +274,7 @@ class Tcpdump extends Reader
 
         if ( $data['protocol'] !== 6 )
         {
-            throw new \RuntimeException( "Not a TCP packet." );
+            trigger_error( E_ERROR, "Not a TCP packet." );
         }
 
         $packet->srcHost = $data['src'];
@@ -312,7 +312,7 @@ class Tcpdump extends Reader
 
         if ( $data['urgent'] > 0 )
         {
-            throw new \RuntimeException( "@TODO: Cannot handle urgent data yet." );
+            trigger_error( E_ERROR, "@TODO: Cannot handle urgent data yet." );
         }
 
         $packet->tcpSrcPort  = $data['src'];
@@ -351,7 +351,7 @@ class Tcpdump extends Reader
         // @TODO: Detect length automatically?
         if ( strlen( $buffer ) < $length )
         {
-            throw new \RuntimeException( "Not enough content in buffer." );
+            trigger_error( E_ERROR, "Not enough content in buffer." );
         }
 
         // @TODO: Handle Little/Big Endian in pattern?

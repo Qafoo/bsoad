@@ -142,7 +142,7 @@ class Http extends Parser
         }
         else
         {
-            throw new \RuntimeException( "Invalid HTTP message: " . substr( $data, 0, 100 ) );
+            trigger_error( E_ERROR, "Invalid HTTP message: " . substr( $data, 0, 100 ) );
         }
 
         // Cut of read header
