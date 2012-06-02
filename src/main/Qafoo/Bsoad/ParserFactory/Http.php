@@ -20,6 +20,32 @@ use Qafoo\Bsoad\Struct;
 class Http extends ParserFactory
 {
     /**
+     * Output writer
+     *
+     * @var Writer
+     */
+    protected $writer;
+
+    /**
+     * Command generator
+     *
+     * @var Parser\Http\CommandGenerator
+     */
+    protected $commandGenerator;
+
+    /**
+     * Construct from output writer
+     *
+     * @param Writer $writer
+     * @return void
+     */
+    public function __construct( Writer $writer, Parser\Http\CommandGenerator $commandGenerator )
+    {
+        $this->writer           = $writer;
+        $this->commandGenerator = $commandGenerator;
+    }
+
+    /**
      * Create new parser
      *
      * Guess required parser from input packet
@@ -31,7 +57,7 @@ class Http extends ParserFactory
     {
         return new Parser\Http(
             $this->writer,
-            new Parser\Http\CommandGenerator\Curl()
+            $this->commandGenerator
         );
     }
 }

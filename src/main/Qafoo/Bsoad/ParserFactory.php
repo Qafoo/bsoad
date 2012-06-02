@@ -16,24 +16,6 @@ namespace Qafoo\Bsoad;
 abstract class ParserFactory
 {
     /**
-     * Output writer
-     *
-     * @var Writer
-     */
-    protected $writer;
-
-    /**
-     * Construct from output writer
-     *
-     * @param Writer $writer
-     * @return void
-     */
-    public function __construct( Writer $writer )
-    {
-        $this->writer = $writer;
-    }
-
-    /**
      * Create new parser
      *
      * Guess required parser from input packet

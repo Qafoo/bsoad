@@ -34,7 +34,8 @@ $reader = new Reader\Tcpdump(
                     )
                 ),
                 new Writer\Debug( STDERR ),
-            ) )
+            ) ),
+            new Parser\Http\CommandGenerator\Curl()
         )
     )
 );
