@@ -8,14 +8,14 @@
 
 namespace Qafoo\Bsoad\Reader;
 use Qafoo\Bsoad\ParserFactory;
+use Qafoo\Bsoad\Parser;
 use Qafoo\Bsoad\Writer;
 use Qafoo\Bsoad\Sorter;
 
 /**
  * @version $Revision$
  *
- * @covers \Qafoo\Bsoad\Reader\Tcpdump
- * @group unittest
+ * @group integrationtest
  */
 class TcpdumpTest extends \PHPUnit_Framework_TestCase
 {
@@ -53,7 +53,8 @@ class TcpdumpTest extends \PHPUnit_Framework_TestCase
         $reader = new Tcpdump(
             new Sorter\Basic(
                 new ParserFactory\Http(
-                    $writer = new Writer\Aggregate()
+                    $writer = new Writer\Aggregate(),
+                    new Parser\Http\CommandGenerator\Curl()
                 )
             )
         );
