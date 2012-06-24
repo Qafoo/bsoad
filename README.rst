@@ -12,7 +12,7 @@ Usage
 
 To use this thingy on localhost, do something like::
 
-    tcpdump -l -i lo 'tcp and (port 80 or port 8983)' -w - | bsoad | bsoad-bdog
+    tcpdump -l -i lo -s0 'tcp and (port 80 or port 8983)' -w - | bsoad | bsoad-bdog
 
 This will dump all HTTP and Solr interactions using their respective default
 ports.
@@ -30,7 +30,7 @@ If some errors are happening record the stream originating from tcpdump and
 store it. This enables you / me to debug bsoad with the same input data. You
 may use ``tee`` for that, like::
 
-    tcpdump -l -i lo 'tcp and port 80' -w - | tee /tmp/dump.pcap | bsoad | bsoad-bdog
+    tcpdump -l -i lo -s0 'tcp and port 80' -w - | tee /tmp/dump.pcap | bsoad | bsoad-bdog
 
 You can then replay the dump using::
 
