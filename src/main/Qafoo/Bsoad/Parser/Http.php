@@ -162,6 +162,8 @@ class Http extends Parser
         $data = substr( $data, 2 );
 
         // Read response body
+        //
+        // Refactor this on the base of:  https://tools.ietf.org/html/rfc2616#page-33
         $body = '';
         if ( ( $message instanceof Struct\Message\Response ) &&
              ( $message->code >= 300 ) &&
