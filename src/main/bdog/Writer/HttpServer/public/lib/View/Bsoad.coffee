@@ -88,6 +88,6 @@ define ( require, module, exports ) ->
 
         escapeHtml: ( string ) ->
             string = String( string )
-            return string.replace( "&", "&amp;", "g" ).replace( "<", "&lt;", "g" ).replace( ">", "&gt;", "g" ).replace( '"', "&quot;", "g" )
+            return string.replace( /&/g, "&amp;" ).replace( /</g, "&lt;" ).replace( />/g, "&gt;" ).replace( /"/g, "&quot;" )
 
     module.exports = BsoadView
