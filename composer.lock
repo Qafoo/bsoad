@@ -2,16 +2,30 @@
     "hash": "40818282ad8074e528519a4a2ee0bc33",
     "packages": [
         {
-            "package": "qafoo/bdog",
-            "version": "0.1"
+            "name": "qafoo/bdog",
+            "version": "0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Qafoo/bdog/",
+                "reference": "origin/master"
+            },
+            "type": "library"
         }
     ],
-    "packages-dev": null,
+    "packages-dev": [
+
+    ],
     "aliases": [
 
     ],
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "stability-flags": [
+
+    ],
+    "platform": [
+
+    ],
+    "platform-dev": [
 
     ]
 }
